@@ -34,7 +34,7 @@
                 m-menu-link-redirect="1"
                 aria-haspopup="true"
               >
-                <router-link to="/" class="m-menu__link "
+                <router-link to="/Dashboard" class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-support"></i
                   ><span class="m-menu__link-text"
                     >{{ $t('Dashboard1') }}</span

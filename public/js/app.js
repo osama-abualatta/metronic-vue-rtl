@@ -86,6 +86,1819 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./node_modules/axios/index.js":
+/*!*************************************!*\
+  !*** ./node_modules/axios/index.js ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__(/*! ./lib/axios */ "./node_modules/axios/lib/axios.js");
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/adapters/xhr.js":
+/*!************************************************!*\
+  !*** ./node_modules/axios/lib/adapters/xhr.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+var settle = __webpack_require__(/*! ./../core/settle */ "./node_modules/axios/lib/core/settle.js");
+var buildURL = __webpack_require__(/*! ./../helpers/buildURL */ "./node_modules/axios/lib/helpers/buildURL.js");
+var buildFullPath = __webpack_require__(/*! ../core/buildFullPath */ "./node_modules/axios/lib/core/buildFullPath.js");
+var parseHeaders = __webpack_require__(/*! ./../helpers/parseHeaders */ "./node_modules/axios/lib/helpers/parseHeaders.js");
+var isURLSameOrigin = __webpack_require__(/*! ./../helpers/isURLSameOrigin */ "./node_modules/axios/lib/helpers/isURLSameOrigin.js");
+var createError = __webpack_require__(/*! ../core/createError */ "./node_modules/axios/lib/core/createError.js");
+
+module.exports = function xhrAdapter(config) {
+  return new Promise(function dispatchXhrRequest(resolve, reject) {
+    var requestData = config.data;
+    var requestHeaders = config.headers;
+
+    if (utils.isFormData(requestData)) {
+      delete requestHeaders['Content-Type']; // Let the browser set it
+    }
+
+    var request = new XMLHttpRequest();
+
+    // HTTP basic authentication
+    if (config.auth) {
+      var username = config.auth.username || '';
+      var password = config.auth.password || '';
+      requestHeaders.Authorization = 'Basic ' + btoa(username + ':' + password);
+    }
+
+    var fullPath = buildFullPath(config.baseURL, config.url);
+    request.open(config.method.toUpperCase(), buildURL(fullPath, config.params, config.paramsSerializer), true);
+
+    // Set the request timeout in MS
+    request.timeout = config.timeout;
+
+    // Listen for ready state
+    request.onreadystatechange = function handleLoad() {
+      if (!request || request.readyState !== 4) {
+        return;
+      }
+
+      // The request errored out and we didn't get a response, this will be
+      // handled by onerror instead
+      // With one exception: request that using file: protocol, most browsers
+      // will return status as 0 even though it's a successful request
+      if (request.status === 0 && !(request.responseURL && request.responseURL.indexOf('file:') === 0)) {
+        return;
+      }
+
+      // Prepare the response
+      var responseHeaders = 'getAllResponseHeaders' in request ? parseHeaders(request.getAllResponseHeaders()) : null;
+      var responseData = !config.responseType || config.responseType === 'text' ? request.responseText : request.response;
+      var response = {
+        data: responseData,
+        status: request.status,
+        statusText: request.statusText,
+        headers: responseHeaders,
+        config: config,
+        request: request
+      };
+
+      settle(resolve, reject, response);
+
+      // Clean up request
+      request = null;
+    };
+
+    // Handle browser request cancellation (as opposed to a manual cancellation)
+    request.onabort = function handleAbort() {
+      if (!request) {
+        return;
+      }
+
+      reject(createError('Request aborted', config, 'ECONNABORTED', request));
+
+      // Clean up request
+      request = null;
+    };
+
+    // Handle low level network errors
+    request.onerror = function handleError() {
+      // Real errors are hidden from us by the browser
+      // onerror should only fire if it's a network error
+      reject(createError('Network Error', config, null, request));
+
+      // Clean up request
+      request = null;
+    };
+
+    // Handle timeout
+    request.ontimeout = function handleTimeout() {
+      var timeoutErrorMessage = 'timeout of ' + config.timeout + 'ms exceeded';
+      if (config.timeoutErrorMessage) {
+        timeoutErrorMessage = config.timeoutErrorMessage;
+      }
+      reject(createError(timeoutErrorMessage, config, 'ECONNABORTED',
+        request));
+
+      // Clean up request
+      request = null;
+    };
+
+    // Add xsrf header
+    // This is only done if running in a standard browser environment.
+    // Specifically not if we're in a web worker, or react-native.
+    if (utils.isStandardBrowserEnv()) {
+      var cookies = __webpack_require__(/*! ./../helpers/cookies */ "./node_modules/axios/lib/helpers/cookies.js");
+
+      // Add xsrf header
+      var xsrfValue = (config.withCredentials || isURLSameOrigin(fullPath)) && config.xsrfCookieName ?
+        cookies.read(config.xsrfCookieName) :
+        undefined;
+
+      if (xsrfValue) {
+        requestHeaders[config.xsrfHeaderName] = xsrfValue;
+      }
+    }
+
+    // Add headers to the request
+    if ('setRequestHeader' in request) {
+      utils.forEach(requestHeaders, function setRequestHeader(val, key) {
+        if (typeof requestData === 'undefined' && key.toLowerCase() === 'content-type') {
+          // Remove Content-Type if data is undefined
+          delete requestHeaders[key];
+        } else {
+          // Otherwise add header to the request
+          request.setRequestHeader(key, val);
+        }
+      });
+    }
+
+    // Add withCredentials to request if needed
+    if (!utils.isUndefined(config.withCredentials)) {
+      request.withCredentials = !!config.withCredentials;
+    }
+
+    // Add responseType to request if needed
+    if (config.responseType) {
+      try {
+        request.responseType = config.responseType;
+      } catch (e) {
+        // Expected DOMException thrown by browsers not compatible XMLHttpRequest Level 2.
+        // But, this can be suppressed for 'json' type as it can be parsed by default 'transformResponse' function.
+        if (config.responseType !== 'json') {
+          throw e;
+        }
+      }
+    }
+
+    // Handle progress if needed
+    if (typeof config.onDownloadProgress === 'function') {
+      request.addEventListener('progress', config.onDownloadProgress);
+    }
+
+    // Not all browsers support upload events
+    if (typeof config.onUploadProgress === 'function' && request.upload) {
+      request.upload.addEventListener('progress', config.onUploadProgress);
+    }
+
+    if (config.cancelToken) {
+      // Handle cancellation
+      config.cancelToken.promise.then(function onCanceled(cancel) {
+        if (!request) {
+          return;
+        }
+
+        request.abort();
+        reject(cancel);
+        // Clean up request
+        request = null;
+      });
+    }
+
+    if (requestData === undefined) {
+      requestData = null;
+    }
+
+    // Send the request
+    request.send(requestData);
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/axios.js":
+/*!*****************************************!*\
+  !*** ./node_modules/axios/lib/axios.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./utils */ "./node_modules/axios/lib/utils.js");
+var bind = __webpack_require__(/*! ./helpers/bind */ "./node_modules/axios/lib/helpers/bind.js");
+var Axios = __webpack_require__(/*! ./core/Axios */ "./node_modules/axios/lib/core/Axios.js");
+var mergeConfig = __webpack_require__(/*! ./core/mergeConfig */ "./node_modules/axios/lib/core/mergeConfig.js");
+var defaults = __webpack_require__(/*! ./defaults */ "./node_modules/axios/lib/defaults.js");
+
+/**
+ * Create an instance of Axios
+ *
+ * @param {Object} defaultConfig The default config for the instance
+ * @return {Axios} A new instance of Axios
+ */
+function createInstance(defaultConfig) {
+  var context = new Axios(defaultConfig);
+  var instance = bind(Axios.prototype.request, context);
+
+  // Copy axios.prototype to instance
+  utils.extend(instance, Axios.prototype, context);
+
+  // Copy context to instance
+  utils.extend(instance, context);
+
+  return instance;
+}
+
+// Create the default instance to be exported
+var axios = createInstance(defaults);
+
+// Expose Axios class to allow class inheritance
+axios.Axios = Axios;
+
+// Factory for creating new instances
+axios.create = function create(instanceConfig) {
+  return createInstance(mergeConfig(axios.defaults, instanceConfig));
+};
+
+// Expose Cancel & CancelToken
+axios.Cancel = __webpack_require__(/*! ./cancel/Cancel */ "./node_modules/axios/lib/cancel/Cancel.js");
+axios.CancelToken = __webpack_require__(/*! ./cancel/CancelToken */ "./node_modules/axios/lib/cancel/CancelToken.js");
+axios.isCancel = __webpack_require__(/*! ./cancel/isCancel */ "./node_modules/axios/lib/cancel/isCancel.js");
+
+// Expose all/spread
+axios.all = function all(promises) {
+  return Promise.all(promises);
+};
+axios.spread = __webpack_require__(/*! ./helpers/spread */ "./node_modules/axios/lib/helpers/spread.js");
+
+module.exports = axios;
+
+// Allow use of default import syntax in TypeScript
+module.exports.default = axios;
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/cancel/Cancel.js":
+/*!*************************************************!*\
+  !*** ./node_modules/axios/lib/cancel/Cancel.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * A `Cancel` is an object that is thrown when an operation is canceled.
+ *
+ * @class
+ * @param {string=} message The message.
+ */
+function Cancel(message) {
+  this.message = message;
+}
+
+Cancel.prototype.toString = function toString() {
+  return 'Cancel' + (this.message ? ': ' + this.message : '');
+};
+
+Cancel.prototype.__CANCEL__ = true;
+
+module.exports = Cancel;
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/cancel/CancelToken.js":
+/*!******************************************************!*\
+  !*** ./node_modules/axios/lib/cancel/CancelToken.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var Cancel = __webpack_require__(/*! ./Cancel */ "./node_modules/axios/lib/cancel/Cancel.js");
+
+/**
+ * A `CancelToken` is an object that can be used to request cancellation of an operation.
+ *
+ * @class
+ * @param {Function} executor The executor function.
+ */
+function CancelToken(executor) {
+  if (typeof executor !== 'function') {
+    throw new TypeError('executor must be a function.');
+  }
+
+  var resolvePromise;
+  this.promise = new Promise(function promiseExecutor(resolve) {
+    resolvePromise = resolve;
+  });
+
+  var token = this;
+  executor(function cancel(message) {
+    if (token.reason) {
+      // Cancellation has already been requested
+      return;
+    }
+
+    token.reason = new Cancel(message);
+    resolvePromise(token.reason);
+  });
+}
+
+/**
+ * Throws a `Cancel` if cancellation has been requested.
+ */
+CancelToken.prototype.throwIfRequested = function throwIfRequested() {
+  if (this.reason) {
+    throw this.reason;
+  }
+};
+
+/**
+ * Returns an object that contains a new `CancelToken` and a function that, when called,
+ * cancels the `CancelToken`.
+ */
+CancelToken.source = function source() {
+  var cancel;
+  var token = new CancelToken(function executor(c) {
+    cancel = c;
+  });
+  return {
+    token: token,
+    cancel: cancel
+  };
+};
+
+module.exports = CancelToken;
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/cancel/isCancel.js":
+/*!***************************************************!*\
+  !*** ./node_modules/axios/lib/cancel/isCancel.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = function isCancel(value) {
+  return !!(value && value.__CANCEL__);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/Axios.js":
+/*!**********************************************!*\
+  !*** ./node_modules/axios/lib/core/Axios.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+var buildURL = __webpack_require__(/*! ../helpers/buildURL */ "./node_modules/axios/lib/helpers/buildURL.js");
+var InterceptorManager = __webpack_require__(/*! ./InterceptorManager */ "./node_modules/axios/lib/core/InterceptorManager.js");
+var dispatchRequest = __webpack_require__(/*! ./dispatchRequest */ "./node_modules/axios/lib/core/dispatchRequest.js");
+var mergeConfig = __webpack_require__(/*! ./mergeConfig */ "./node_modules/axios/lib/core/mergeConfig.js");
+
+/**
+ * Create a new instance of Axios
+ *
+ * @param {Object} instanceConfig The default config for the instance
+ */
+function Axios(instanceConfig) {
+  this.defaults = instanceConfig;
+  this.interceptors = {
+    request: new InterceptorManager(),
+    response: new InterceptorManager()
+  };
+}
+
+/**
+ * Dispatch a request
+ *
+ * @param {Object} config The config specific for this request (merged with this.defaults)
+ */
+Axios.prototype.request = function request(config) {
+  /*eslint no-param-reassign:0*/
+  // Allow for axios('example/url'[, config]) a la fetch API
+  if (typeof config === 'string') {
+    config = arguments[1] || {};
+    config.url = arguments[0];
+  } else {
+    config = config || {};
+  }
+
+  config = mergeConfig(this.defaults, config);
+
+  // Set config.method
+  if (config.method) {
+    config.method = config.method.toLowerCase();
+  } else if (this.defaults.method) {
+    config.method = this.defaults.method.toLowerCase();
+  } else {
+    config.method = 'get';
+  }
+
+  // Hook up interceptors middleware
+  var chain = [dispatchRequest, undefined];
+  var promise = Promise.resolve(config);
+
+  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
+    chain.unshift(interceptor.fulfilled, interceptor.rejected);
+  });
+
+  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
+    chain.push(interceptor.fulfilled, interceptor.rejected);
+  });
+
+  while (chain.length) {
+    promise = promise.then(chain.shift(), chain.shift());
+  }
+
+  return promise;
+};
+
+Axios.prototype.getUri = function getUri(config) {
+  config = mergeConfig(this.defaults, config);
+  return buildURL(config.url, config.params, config.paramsSerializer).replace(/^\?/, '');
+};
+
+// Provide aliases for supported request methods
+utils.forEach(['delete', 'get', 'head', 'options'], function forEachMethodNoData(method) {
+  /*eslint func-names:0*/
+  Axios.prototype[method] = function(url, config) {
+    return this.request(utils.merge(config || {}, {
+      method: method,
+      url: url
+    }));
+  };
+});
+
+utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
+  /*eslint func-names:0*/
+  Axios.prototype[method] = function(url, data, config) {
+    return this.request(utils.merge(config || {}, {
+      method: method,
+      url: url,
+      data: data
+    }));
+  };
+});
+
+module.exports = Axios;
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/InterceptorManager.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/axios/lib/core/InterceptorManager.js ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+
+function InterceptorManager() {
+  this.handlers = [];
+}
+
+/**
+ * Add a new interceptor to the stack
+ *
+ * @param {Function} fulfilled The function to handle `then` for a `Promise`
+ * @param {Function} rejected The function to handle `reject` for a `Promise`
+ *
+ * @return {Number} An ID used to remove interceptor later
+ */
+InterceptorManager.prototype.use = function use(fulfilled, rejected) {
+  this.handlers.push({
+    fulfilled: fulfilled,
+    rejected: rejected
+  });
+  return this.handlers.length - 1;
+};
+
+/**
+ * Remove an interceptor from the stack
+ *
+ * @param {Number} id The ID that was returned by `use`
+ */
+InterceptorManager.prototype.eject = function eject(id) {
+  if (this.handlers[id]) {
+    this.handlers[id] = null;
+  }
+};
+
+/**
+ * Iterate over all the registered interceptors
+ *
+ * This method is particularly useful for skipping over any
+ * interceptors that may have become `null` calling `eject`.
+ *
+ * @param {Function} fn The function to call for each interceptor
+ */
+InterceptorManager.prototype.forEach = function forEach(fn) {
+  utils.forEach(this.handlers, function forEachHandler(h) {
+    if (h !== null) {
+      fn(h);
+    }
+  });
+};
+
+module.exports = InterceptorManager;
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/buildFullPath.js":
+/*!******************************************************!*\
+  !*** ./node_modules/axios/lib/core/buildFullPath.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var isAbsoluteURL = __webpack_require__(/*! ../helpers/isAbsoluteURL */ "./node_modules/axios/lib/helpers/isAbsoluteURL.js");
+var combineURLs = __webpack_require__(/*! ../helpers/combineURLs */ "./node_modules/axios/lib/helpers/combineURLs.js");
+
+/**
+ * Creates a new URL by combining the baseURL with the requestedURL,
+ * only when the requestedURL is not already an absolute URL.
+ * If the requestURL is absolute, this function returns the requestedURL untouched.
+ *
+ * @param {string} baseURL The base URL
+ * @param {string} requestedURL Absolute or relative URL to combine
+ * @returns {string} The combined full path
+ */
+module.exports = function buildFullPath(baseURL, requestedURL) {
+  if (baseURL && !isAbsoluteURL(requestedURL)) {
+    return combineURLs(baseURL, requestedURL);
+  }
+  return requestedURL;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/createError.js":
+/*!****************************************************!*\
+  !*** ./node_modules/axios/lib/core/createError.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var enhanceError = __webpack_require__(/*! ./enhanceError */ "./node_modules/axios/lib/core/enhanceError.js");
+
+/**
+ * Create an Error with the specified message, config, error code, request and response.
+ *
+ * @param {string} message The error message.
+ * @param {Object} config The config.
+ * @param {string} [code] The error code (for example, 'ECONNABORTED').
+ * @param {Object} [request] The request.
+ * @param {Object} [response] The response.
+ * @returns {Error} The created error.
+ */
+module.exports = function createError(message, config, code, request, response) {
+  var error = new Error(message);
+  return enhanceError(error, config, code, request, response);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/dispatchRequest.js":
+/*!********************************************************!*\
+  !*** ./node_modules/axios/lib/core/dispatchRequest.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+var transformData = __webpack_require__(/*! ./transformData */ "./node_modules/axios/lib/core/transformData.js");
+var isCancel = __webpack_require__(/*! ../cancel/isCancel */ "./node_modules/axios/lib/cancel/isCancel.js");
+var defaults = __webpack_require__(/*! ../defaults */ "./node_modules/axios/lib/defaults.js");
+
+/**
+ * Throws a `Cancel` if cancellation has been requested.
+ */
+function throwIfCancellationRequested(config) {
+  if (config.cancelToken) {
+    config.cancelToken.throwIfRequested();
+  }
+}
+
+/**
+ * Dispatch a request to the server using the configured adapter.
+ *
+ * @param {object} config The config that is to be used for the request
+ * @returns {Promise} The Promise to be fulfilled
+ */
+module.exports = function dispatchRequest(config) {
+  throwIfCancellationRequested(config);
+
+  // Ensure headers exist
+  config.headers = config.headers || {};
+
+  // Transform request data
+  config.data = transformData(
+    config.data,
+    config.headers,
+    config.transformRequest
+  );
+
+  // Flatten headers
+  config.headers = utils.merge(
+    config.headers.common || {},
+    config.headers[config.method] || {},
+    config.headers
+  );
+
+  utils.forEach(
+    ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'],
+    function cleanHeaderConfig(method) {
+      delete config.headers[method];
+    }
+  );
+
+  var adapter = config.adapter || defaults.adapter;
+
+  return adapter(config).then(function onAdapterResolution(response) {
+    throwIfCancellationRequested(config);
+
+    // Transform response data
+    response.data = transformData(
+      response.data,
+      response.headers,
+      config.transformResponse
+    );
+
+    return response;
+  }, function onAdapterRejection(reason) {
+    if (!isCancel(reason)) {
+      throwIfCancellationRequested(config);
+
+      // Transform response data
+      if (reason && reason.response) {
+        reason.response.data = transformData(
+          reason.response.data,
+          reason.response.headers,
+          config.transformResponse
+        );
+      }
+    }
+
+    return Promise.reject(reason);
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/enhanceError.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/axios/lib/core/enhanceError.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Update an Error with the specified config, error code, and response.
+ *
+ * @param {Error} error The error to update.
+ * @param {Object} config The config.
+ * @param {string} [code] The error code (for example, 'ECONNABORTED').
+ * @param {Object} [request] The request.
+ * @param {Object} [response] The response.
+ * @returns {Error} The error.
+ */
+module.exports = function enhanceError(error, config, code, request, response) {
+  error.config = config;
+  if (code) {
+    error.code = code;
+  }
+
+  error.request = request;
+  error.response = response;
+  error.isAxiosError = true;
+
+  error.toJSON = function() {
+    return {
+      // Standard
+      message: this.message,
+      name: this.name,
+      // Microsoft
+      description: this.description,
+      number: this.number,
+      // Mozilla
+      fileName: this.fileName,
+      lineNumber: this.lineNumber,
+      columnNumber: this.columnNumber,
+      stack: this.stack,
+      // Axios
+      config: this.config,
+      code: this.code
+    };
+  };
+  return error;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/mergeConfig.js":
+/*!****************************************************!*\
+  !*** ./node_modules/axios/lib/core/mergeConfig.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ../utils */ "./node_modules/axios/lib/utils.js");
+
+/**
+ * Config-specific merge-function which creates a new config-object
+ * by merging two configuration objects together.
+ *
+ * @param {Object} config1
+ * @param {Object} config2
+ * @returns {Object} New object resulting from merging config2 to config1
+ */
+module.exports = function mergeConfig(config1, config2) {
+  // eslint-disable-next-line no-param-reassign
+  config2 = config2 || {};
+  var config = {};
+
+  var valueFromConfig2Keys = ['url', 'method', 'params', 'data'];
+  var mergeDeepPropertiesKeys = ['headers', 'auth', 'proxy'];
+  var defaultToConfig2Keys = [
+    'baseURL', 'url', 'transformRequest', 'transformResponse', 'paramsSerializer',
+    'timeout', 'withCredentials', 'adapter', 'responseType', 'xsrfCookieName',
+    'xsrfHeaderName', 'onUploadProgress', 'onDownloadProgress',
+    'maxContentLength', 'validateStatus', 'maxRedirects', 'httpAgent',
+    'httpsAgent', 'cancelToken', 'socketPath'
+  ];
+
+  utils.forEach(valueFromConfig2Keys, function valueFromConfig2(prop) {
+    if (typeof config2[prop] !== 'undefined') {
+      config[prop] = config2[prop];
+    }
+  });
+
+  utils.forEach(mergeDeepPropertiesKeys, function mergeDeepProperties(prop) {
+    if (utils.isObject(config2[prop])) {
+      config[prop] = utils.deepMerge(config1[prop], config2[prop]);
+    } else if (typeof config2[prop] !== 'undefined') {
+      config[prop] = config2[prop];
+    } else if (utils.isObject(config1[prop])) {
+      config[prop] = utils.deepMerge(config1[prop]);
+    } else if (typeof config1[prop] !== 'undefined') {
+      config[prop] = config1[prop];
+    }
+  });
+
+  utils.forEach(defaultToConfig2Keys, function defaultToConfig2(prop) {
+    if (typeof config2[prop] !== 'undefined') {
+      config[prop] = config2[prop];
+    } else if (typeof config1[prop] !== 'undefined') {
+      config[prop] = config1[prop];
+    }
+  });
+
+  var axiosKeys = valueFromConfig2Keys
+    .concat(mergeDeepPropertiesKeys)
+    .concat(defaultToConfig2Keys);
+
+  var otherKeys = Object
+    .keys(config2)
+    .filter(function filterAxiosKeys(key) {
+      return axiosKeys.indexOf(key) === -1;
+    });
+
+  utils.forEach(otherKeys, function otherKeysDefaultToConfig2(prop) {
+    if (typeof config2[prop] !== 'undefined') {
+      config[prop] = config2[prop];
+    } else if (typeof config1[prop] !== 'undefined') {
+      config[prop] = config1[prop];
+    }
+  });
+
+  return config;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/settle.js":
+/*!***********************************************!*\
+  !*** ./node_modules/axios/lib/core/settle.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var createError = __webpack_require__(/*! ./createError */ "./node_modules/axios/lib/core/createError.js");
+
+/**
+ * Resolve or reject a Promise based on response status.
+ *
+ * @param {Function} resolve A function that resolves the promise.
+ * @param {Function} reject A function that rejects the promise.
+ * @param {object} response The response.
+ */
+module.exports = function settle(resolve, reject, response) {
+  var validateStatus = response.config.validateStatus;
+  if (!validateStatus || validateStatus(response.status)) {
+    resolve(response);
+  } else {
+    reject(createError(
+      'Request failed with status code ' + response.status,
+      response.config,
+      null,
+      response.request,
+      response
+    ));
+  }
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/core/transformData.js":
+/*!******************************************************!*\
+  !*** ./node_modules/axios/lib/core/transformData.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+
+/**
+ * Transform the data for a request or a response
+ *
+ * @param {Object|String} data The data to be transformed
+ * @param {Array} headers The headers for the request or response
+ * @param {Array|Function} fns A single function or Array of functions
+ * @returns {*} The resulting transformed data
+ */
+module.exports = function transformData(data, headers, fns) {
+  /*eslint no-param-reassign:0*/
+  utils.forEach(fns, function transform(fn) {
+    data = fn(data, headers);
+  });
+
+  return data;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/defaults.js":
+/*!********************************************!*\
+  !*** ./node_modules/axios/lib/defaults.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(process) {
+
+var utils = __webpack_require__(/*! ./utils */ "./node_modules/axios/lib/utils.js");
+var normalizeHeaderName = __webpack_require__(/*! ./helpers/normalizeHeaderName */ "./node_modules/axios/lib/helpers/normalizeHeaderName.js");
+
+var DEFAULT_CONTENT_TYPE = {
+  'Content-Type': 'application/x-www-form-urlencoded'
+};
+
+function setContentTypeIfUnset(headers, value) {
+  if (!utils.isUndefined(headers) && utils.isUndefined(headers['Content-Type'])) {
+    headers['Content-Type'] = value;
+  }
+}
+
+function getDefaultAdapter() {
+  var adapter;
+  if (typeof XMLHttpRequest !== 'undefined') {
+    // For browsers use XHR adapter
+    adapter = __webpack_require__(/*! ./adapters/xhr */ "./node_modules/axios/lib/adapters/xhr.js");
+  } else if (typeof process !== 'undefined' && Object.prototype.toString.call(process) === '[object process]') {
+    // For node use HTTP adapter
+    adapter = __webpack_require__(/*! ./adapters/http */ "./node_modules/axios/lib/adapters/xhr.js");
+  }
+  return adapter;
+}
+
+var defaults = {
+  adapter: getDefaultAdapter(),
+
+  transformRequest: [function transformRequest(data, headers) {
+    normalizeHeaderName(headers, 'Accept');
+    normalizeHeaderName(headers, 'Content-Type');
+    if (utils.isFormData(data) ||
+      utils.isArrayBuffer(data) ||
+      utils.isBuffer(data) ||
+      utils.isStream(data) ||
+      utils.isFile(data) ||
+      utils.isBlob(data)
+    ) {
+      return data;
+    }
+    if (utils.isArrayBufferView(data)) {
+      return data.buffer;
+    }
+    if (utils.isURLSearchParams(data)) {
+      setContentTypeIfUnset(headers, 'application/x-www-form-urlencoded;charset=utf-8');
+      return data.toString();
+    }
+    if (utils.isObject(data)) {
+      setContentTypeIfUnset(headers, 'application/json;charset=utf-8');
+      return JSON.stringify(data);
+    }
+    return data;
+  }],
+
+  transformResponse: [function transformResponse(data) {
+    /*eslint no-param-reassign:0*/
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) { /* Ignore */ }
+    }
+    return data;
+  }],
+
+  /**
+   * A timeout in milliseconds to abort a request. If set to 0 (default) a
+   * timeout is not created.
+   */
+  timeout: 0,
+
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
+
+  maxContentLength: -1,
+
+  validateStatus: function validateStatus(status) {
+    return status >= 200 && status < 300;
+  }
+};
+
+defaults.headers = {
+  common: {
+    'Accept': 'application/json, text/plain, */*'
+  }
+};
+
+utils.forEach(['delete', 'get', 'head'], function forEachMethodNoData(method) {
+  defaults.headers[method] = {};
+});
+
+utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
+  defaults.headers[method] = utils.merge(DEFAULT_CONTENT_TYPE);
+});
+
+module.exports = defaults;
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../process/browser.js */ "./node_modules/process/browser.js")))
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/bind.js":
+/*!************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/bind.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = function bind(fn, thisArg) {
+  return function wrap() {
+    var args = new Array(arguments.length);
+    for (var i = 0; i < args.length; i++) {
+      args[i] = arguments[i];
+    }
+    return fn.apply(thisArg, args);
+  };
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/buildURL.js":
+/*!****************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/buildURL.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+
+function encode(val) {
+  return encodeURIComponent(val).
+    replace(/%40/gi, '@').
+    replace(/%3A/gi, ':').
+    replace(/%24/g, '$').
+    replace(/%2C/gi, ',').
+    replace(/%20/g, '+').
+    replace(/%5B/gi, '[').
+    replace(/%5D/gi, ']');
+}
+
+/**
+ * Build a URL by appending params to the end
+ *
+ * @param {string} url The base of the url (e.g., http://www.google.com)
+ * @param {object} [params] The params to be appended
+ * @returns {string} The formatted url
+ */
+module.exports = function buildURL(url, params, paramsSerializer) {
+  /*eslint no-param-reassign:0*/
+  if (!params) {
+    return url;
+  }
+
+  var serializedParams;
+  if (paramsSerializer) {
+    serializedParams = paramsSerializer(params);
+  } else if (utils.isURLSearchParams(params)) {
+    serializedParams = params.toString();
+  } else {
+    var parts = [];
+
+    utils.forEach(params, function serialize(val, key) {
+      if (val === null || typeof val === 'undefined') {
+        return;
+      }
+
+      if (utils.isArray(val)) {
+        key = key + '[]';
+      } else {
+        val = [val];
+      }
+
+      utils.forEach(val, function parseValue(v) {
+        if (utils.isDate(v)) {
+          v = v.toISOString();
+        } else if (utils.isObject(v)) {
+          v = JSON.stringify(v);
+        }
+        parts.push(encode(key) + '=' + encode(v));
+      });
+    });
+
+    serializedParams = parts.join('&');
+  }
+
+  if (serializedParams) {
+    var hashmarkIndex = url.indexOf('#');
+    if (hashmarkIndex !== -1) {
+      url = url.slice(0, hashmarkIndex);
+    }
+
+    url += (url.indexOf('?') === -1 ? '?' : '&') + serializedParams;
+  }
+
+  return url;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/combineURLs.js":
+/*!*******************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/combineURLs.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Creates a new URL by combining the specified URLs
+ *
+ * @param {string} baseURL The base URL
+ * @param {string} relativeURL The relative URL
+ * @returns {string} The combined URL
+ */
+module.exports = function combineURLs(baseURL, relativeURL) {
+  return relativeURL
+    ? baseURL.replace(/\/+$/, '') + '/' + relativeURL.replace(/^\/+/, '')
+    : baseURL;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/cookies.js":
+/*!***************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/cookies.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+
+module.exports = (
+  utils.isStandardBrowserEnv() ?
+
+  // Standard browser envs support document.cookie
+    (function standardBrowserEnv() {
+      return {
+        write: function write(name, value, expires, path, domain, secure) {
+          var cookie = [];
+          cookie.push(name + '=' + encodeURIComponent(value));
+
+          if (utils.isNumber(expires)) {
+            cookie.push('expires=' + new Date(expires).toGMTString());
+          }
+
+          if (utils.isString(path)) {
+            cookie.push('path=' + path);
+          }
+
+          if (utils.isString(domain)) {
+            cookie.push('domain=' + domain);
+          }
+
+          if (secure === true) {
+            cookie.push('secure');
+          }
+
+          document.cookie = cookie.join('; ');
+        },
+
+        read: function read(name) {
+          var match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+          return (match ? decodeURIComponent(match[3]) : null);
+        },
+
+        remove: function remove(name) {
+          this.write(name, '', Date.now() - 86400000);
+        }
+      };
+    })() :
+
+  // Non standard browser env (web workers, react-native) lack needed support.
+    (function nonStandardBrowserEnv() {
+      return {
+        write: function write() {},
+        read: function read() { return null; },
+        remove: function remove() {}
+      };
+    })()
+);
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/isAbsoluteURL.js":
+/*!*********************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/isAbsoluteURL.js ***!
+  \*********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Determines whether the specified URL is absolute
+ *
+ * @param {string} url The URL to test
+ * @returns {boolean} True if the specified URL is absolute, otherwise false
+ */
+module.exports = function isAbsoluteURL(url) {
+  // A URL is considered absolute if it begins with "<scheme>://" or "//" (protocol-relative URL).
+  // RFC 3986 defines scheme name as a sequence of characters beginning with a letter and followed
+  // by any combination of letters, digits, plus, period, or hyphen.
+  return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/isURLSameOrigin.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/isURLSameOrigin.js ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+
+module.exports = (
+  utils.isStandardBrowserEnv() ?
+
+  // Standard browser envs have full support of the APIs needed to test
+  // whether the request URL is of the same origin as current location.
+    (function standardBrowserEnv() {
+      var msie = /(msie|trident)/i.test(navigator.userAgent);
+      var urlParsingNode = document.createElement('a');
+      var originURL;
+
+      /**
+    * Parse a URL to discover it's components
+    *
+    * @param {String} url The URL to be parsed
+    * @returns {Object}
+    */
+      function resolveURL(url) {
+        var href = url;
+
+        if (msie) {
+        // IE needs attribute set twice to normalize properties
+          urlParsingNode.setAttribute('href', href);
+          href = urlParsingNode.href;
+        }
+
+        urlParsingNode.setAttribute('href', href);
+
+        // urlParsingNode provides the UrlUtils interface - http://url.spec.whatwg.org/#urlutils
+        return {
+          href: urlParsingNode.href,
+          protocol: urlParsingNode.protocol ? urlParsingNode.protocol.replace(/:$/, '') : '',
+          host: urlParsingNode.host,
+          search: urlParsingNode.search ? urlParsingNode.search.replace(/^\?/, '') : '',
+          hash: urlParsingNode.hash ? urlParsingNode.hash.replace(/^#/, '') : '',
+          hostname: urlParsingNode.hostname,
+          port: urlParsingNode.port,
+          pathname: (urlParsingNode.pathname.charAt(0) === '/') ?
+            urlParsingNode.pathname :
+            '/' + urlParsingNode.pathname
+        };
+      }
+
+      originURL = resolveURL(window.location.href);
+
+      /**
+    * Determine if a URL shares the same origin as the current location
+    *
+    * @param {String} requestURL The URL to test
+    * @returns {boolean} True if URL shares the same origin, otherwise false
+    */
+      return function isURLSameOrigin(requestURL) {
+        var parsed = (utils.isString(requestURL)) ? resolveURL(requestURL) : requestURL;
+        return (parsed.protocol === originURL.protocol &&
+            parsed.host === originURL.host);
+      };
+    })() :
+
+  // Non standard browser envs (web workers, react-native) lack needed support.
+    (function nonStandardBrowserEnv() {
+      return function isURLSameOrigin() {
+        return true;
+      };
+    })()
+);
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/normalizeHeaderName.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/normalizeHeaderName.js ***!
+  \***************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ../utils */ "./node_modules/axios/lib/utils.js");
+
+module.exports = function normalizeHeaderName(headers, normalizedName) {
+  utils.forEach(headers, function processHeader(value, name) {
+    if (name !== normalizedName && name.toUpperCase() === normalizedName.toUpperCase()) {
+      headers[normalizedName] = value;
+      delete headers[name];
+    }
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/parseHeaders.js":
+/*!********************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/parseHeaders.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var utils = __webpack_require__(/*! ./../utils */ "./node_modules/axios/lib/utils.js");
+
+// Headers whose duplicates are ignored by node
+// c.f. https://nodejs.org/api/http.html#http_message_headers
+var ignoreDuplicateOf = [
+  'age', 'authorization', 'content-length', 'content-type', 'etag',
+  'expires', 'from', 'host', 'if-modified-since', 'if-unmodified-since',
+  'last-modified', 'location', 'max-forwards', 'proxy-authorization',
+  'referer', 'retry-after', 'user-agent'
+];
+
+/**
+ * Parse headers into an object
+ *
+ * ```
+ * Date: Wed, 27 Aug 2014 08:58:49 GMT
+ * Content-Type: application/json
+ * Connection: keep-alive
+ * Transfer-Encoding: chunked
+ * ```
+ *
+ * @param {String} headers Headers needing to be parsed
+ * @returns {Object} Headers parsed into an object
+ */
+module.exports = function parseHeaders(headers) {
+  var parsed = {};
+  var key;
+  var val;
+  var i;
+
+  if (!headers) { return parsed; }
+
+  utils.forEach(headers.split('\n'), function parser(line) {
+    i = line.indexOf(':');
+    key = utils.trim(line.substr(0, i)).toLowerCase();
+    val = utils.trim(line.substr(i + 1));
+
+    if (key) {
+      if (parsed[key] && ignoreDuplicateOf.indexOf(key) >= 0) {
+        return;
+      }
+      if (key === 'set-cookie') {
+        parsed[key] = (parsed[key] ? parsed[key] : []).concat([val]);
+      } else {
+        parsed[key] = parsed[key] ? parsed[key] + ', ' + val : val;
+      }
+    }
+  });
+
+  return parsed;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/helpers/spread.js":
+/*!**************************************************!*\
+  !*** ./node_modules/axios/lib/helpers/spread.js ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/**
+ * Syntactic sugar for invoking a function and expanding an array for arguments.
+ *
+ * Common use case would be to use `Function.prototype.apply`.
+ *
+ *  ```js
+ *  function f(x, y, z) {}
+ *  var args = [1, 2, 3];
+ *  f.apply(null, args);
+ *  ```
+ *
+ * With `spread` this example can be re-written.
+ *
+ *  ```js
+ *  spread(function(x, y, z) {})([1, 2, 3]);
+ *  ```
+ *
+ * @param {Function} callback
+ * @returns {Function}
+ */
+module.exports = function spread(callback) {
+  return function wrap(arr) {
+    return callback.apply(null, arr);
+  };
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/axios/lib/utils.js":
+/*!*****************************************!*\
+  !*** ./node_modules/axios/lib/utils.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var bind = __webpack_require__(/*! ./helpers/bind */ "./node_modules/axios/lib/helpers/bind.js");
+
+/*global toString:true*/
+
+// utils is a library of generic helper functions non-specific to axios
+
+var toString = Object.prototype.toString;
+
+/**
+ * Determine if a value is an Array
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is an Array, otherwise false
+ */
+function isArray(val) {
+  return toString.call(val) === '[object Array]';
+}
+
+/**
+ * Determine if a value is undefined
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if the value is undefined, otherwise false
+ */
+function isUndefined(val) {
+  return typeof val === 'undefined';
+}
+
+/**
+ * Determine if a value is a Buffer
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a Buffer, otherwise false
+ */
+function isBuffer(val) {
+  return val !== null && !isUndefined(val) && val.constructor !== null && !isUndefined(val.constructor)
+    && typeof val.constructor.isBuffer === 'function' && val.constructor.isBuffer(val);
+}
+
+/**
+ * Determine if a value is an ArrayBuffer
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is an ArrayBuffer, otherwise false
+ */
+function isArrayBuffer(val) {
+  return toString.call(val) === '[object ArrayBuffer]';
+}
+
+/**
+ * Determine if a value is a FormData
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is an FormData, otherwise false
+ */
+function isFormData(val) {
+  return (typeof FormData !== 'undefined') && (val instanceof FormData);
+}
+
+/**
+ * Determine if a value is a view on an ArrayBuffer
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a view on an ArrayBuffer, otherwise false
+ */
+function isArrayBufferView(val) {
+  var result;
+  if ((typeof ArrayBuffer !== 'undefined') && (ArrayBuffer.isView)) {
+    result = ArrayBuffer.isView(val);
+  } else {
+    result = (val) && (val.buffer) && (val.buffer instanceof ArrayBuffer);
+  }
+  return result;
+}
+
+/**
+ * Determine if a value is a String
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a String, otherwise false
+ */
+function isString(val) {
+  return typeof val === 'string';
+}
+
+/**
+ * Determine if a value is a Number
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a Number, otherwise false
+ */
+function isNumber(val) {
+  return typeof val === 'number';
+}
+
+/**
+ * Determine if a value is an Object
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is an Object, otherwise false
+ */
+function isObject(val) {
+  return val !== null && typeof val === 'object';
+}
+
+/**
+ * Determine if a value is a Date
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a Date, otherwise false
+ */
+function isDate(val) {
+  return toString.call(val) === '[object Date]';
+}
+
+/**
+ * Determine if a value is a File
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a File, otherwise false
+ */
+function isFile(val) {
+  return toString.call(val) === '[object File]';
+}
+
+/**
+ * Determine if a value is a Blob
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a Blob, otherwise false
+ */
+function isBlob(val) {
+  return toString.call(val) === '[object Blob]';
+}
+
+/**
+ * Determine if a value is a Function
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a Function, otherwise false
+ */
+function isFunction(val) {
+  return toString.call(val) === '[object Function]';
+}
+
+/**
+ * Determine if a value is a Stream
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a Stream, otherwise false
+ */
+function isStream(val) {
+  return isObject(val) && isFunction(val.pipe);
+}
+
+/**
+ * Determine if a value is a URLSearchParams object
+ *
+ * @param {Object} val The value to test
+ * @returns {boolean} True if value is a URLSearchParams object, otherwise false
+ */
+function isURLSearchParams(val) {
+  return typeof URLSearchParams !== 'undefined' && val instanceof URLSearchParams;
+}
+
+/**
+ * Trim excess whitespace off the beginning and end of a string
+ *
+ * @param {String} str The String to trim
+ * @returns {String} The String freed of excess whitespace
+ */
+function trim(str) {
+  return str.replace(/^\s*/, '').replace(/\s*$/, '');
+}
+
+/**
+ * Determine if we're running in a standard browser environment
+ *
+ * This allows axios to run in a web worker, and react-native.
+ * Both environments support XMLHttpRequest, but not fully standard globals.
+ *
+ * web workers:
+ *  typeof window -> undefined
+ *  typeof document -> undefined
+ *
+ * react-native:
+ *  navigator.product -> 'ReactNative'
+ * nativescript
+ *  navigator.product -> 'NativeScript' or 'NS'
+ */
+function isStandardBrowserEnv() {
+  if (typeof navigator !== 'undefined' && (navigator.product === 'ReactNative' ||
+                                           navigator.product === 'NativeScript' ||
+                                           navigator.product === 'NS')) {
+    return false;
+  }
+  return (
+    typeof window !== 'undefined' &&
+    typeof document !== 'undefined'
+  );
+}
+
+/**
+ * Iterate over an Array or an Object invoking a function for each item.
+ *
+ * If `obj` is an Array callback will be called passing
+ * the value, index, and complete array for each item.
+ *
+ * If 'obj' is an Object callback will be called passing
+ * the value, key, and complete object for each property.
+ *
+ * @param {Object|Array} obj The object to iterate
+ * @param {Function} fn The callback to invoke for each item
+ */
+function forEach(obj, fn) {
+  // Don't bother if no value provided
+  if (obj === null || typeof obj === 'undefined') {
+    return;
+  }
+
+  // Force an array if not already something iterable
+  if (typeof obj !== 'object') {
+    /*eslint no-param-reassign:0*/
+    obj = [obj];
+  }
+
+  if (isArray(obj)) {
+    // Iterate over array values
+    for (var i = 0, l = obj.length; i < l; i++) {
+      fn.call(null, obj[i], i, obj);
+    }
+  } else {
+    // Iterate over object keys
+    for (var key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        fn.call(null, obj[key], key, obj);
+      }
+    }
+  }
+}
+
+/**
+ * Accepts varargs expecting each argument to be an object, then
+ * immutably merges the properties of each object and returns result.
+ *
+ * When multiple objects contain the same key the later object in
+ * the arguments list will take precedence.
+ *
+ * Example:
+ *
+ * ```js
+ * var result = merge({foo: 123}, {foo: 456});
+ * console.log(result.foo); // outputs 456
+ * ```
+ *
+ * @param {Object} obj1 Object to merge
+ * @returns {Object} Result of all merge properties
+ */
+function merge(/* obj1, obj2, obj3, ... */) {
+  var result = {};
+  function assignValue(val, key) {
+    if (typeof result[key] === 'object' && typeof val === 'object') {
+      result[key] = merge(result[key], val);
+    } else {
+      result[key] = val;
+    }
+  }
+
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    forEach(arguments[i], assignValue);
+  }
+  return result;
+}
+
+/**
+ * Function equal to merge with the difference being that no reference
+ * to original objects is kept.
+ *
+ * @see merge
+ * @param {Object} obj1 Object to merge
+ * @returns {Object} Result of all merge properties
+ */
+function deepMerge(/* obj1, obj2, obj3, ... */) {
+  var result = {};
+  function assignValue(val, key) {
+    if (typeof result[key] === 'object' && typeof val === 'object') {
+      result[key] = deepMerge(result[key], val);
+    } else if (typeof val === 'object') {
+      result[key] = deepMerge({}, val);
+    } else {
+      result[key] = val;
+    }
+  }
+
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    forEach(arguments[i], assignValue);
+  }
+  return result;
+}
+
+/**
+ * Extends object a by mutably adding to it the properties of object b.
+ *
+ * @param {Object} a The object to be extended
+ * @param {Object} b The object to copy properties from
+ * @param {Object} thisArg The object to bind function to
+ * @return {Object} The resulting value of object a
+ */
+function extend(a, b, thisArg) {
+  forEach(b, function assignValue(val, key) {
+    if (thisArg && typeof val === 'function') {
+      a[key] = bind(val, thisArg);
+    } else {
+      a[key] = val;
+    }
+  });
+  return a;
+}
+
+module.exports = {
+  isArray: isArray,
+  isArrayBuffer: isArrayBuffer,
+  isBuffer: isBuffer,
+  isFormData: isFormData,
+  isArrayBufferView: isArrayBufferView,
+  isString: isString,
+  isNumber: isNumber,
+  isObject: isObject,
+  isUndefined: isUndefined,
+  isDate: isDate,
+  isFile: isFile,
+  isBlob: isBlob,
+  isFunction: isFunction,
+  isStream: isStream,
+  isURLSearchParams: isURLSearchParams,
+  isStandardBrowserEnv: isStandardBrowserEnv,
+  forEach: forEach,
+  merge: merge,
+  deepMerge: deepMerge,
+  extend: extend,
+  trim: trim
+};
+
+
+/***/ }),
+
 /***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/Layout.vue?vue&type=script&lang=js&":
 /*!******************************************************************************************************************************************************************!*\
   !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/admin/views/Layout.vue?vue&type=script&lang=js& ***!
@@ -153,7 +1966,55 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-/* harmony default export */ __webpack_exports__["default"] = ({});
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+/* harmony default export */ __webpack_exports__["default"] = ({
+  data: function data() {
+    return {
+      log: 'login' // up=false
+
+    };
+  },
+  // mounted() {
+  //     if(!this.authenticated) {
+  //         this.$router.replace( "login" );
+  //     }
+  // },
+  methods: {
+    signin: function signin() {
+      this.log = 'dashboard';
+    },
+    logoutHandle: function logoutHandle() {
+      this.log = 'login';
+    },
+    register: function register() {
+      this.log = 'signup';
+    },
+    cancelBtn: function cancelBtn() {
+      this.log = 'login';
+    }
+  } //  setAuthenticated(status) {
+  //         this.authenticated = status;
+  //     },
+  //     logout() {
+  //         this.authenticated = false;
+  //     }
+
+});
 
 /***/ }),
 
@@ -316,7 +2177,13 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-/* harmony default export */ __webpack_exports__["default"] = ({});
+/* harmony default export */ __webpack_exports__["default"] = ({
+  methods: {
+    logoutHandle: function logoutHandle() {
+      this.$emit('logoutHandle');
+    }
+  }
+});
 
 /***/ }),
 
@@ -932,6 +2799,499 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/LogIn.vue?vue&type=script&lang=js&":
+/*!*********************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/admin/views/partials/header/LogIn.vue?vue&type=script&lang=js& ***!
+  \*********************************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! axios */ "./node_modules/axios/index.js");
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_0__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  data: function data() {
+    return {
+      input: {
+        email: "",
+        password: ""
+      }
+    };
+  },
+  methods: {
+    signin: function signin() {
+      var _this = this;
+
+      axios__WEBPACK_IMPORTED_MODULE_0___default.a.post('https://reqres.in/api/login', {
+        email: this.input.email,
+        password: this.input.password
+      }).then(function (response) {
+        console.log(response); //   if(this.input.email != "" && this.input.password != "") {
+        //        if(this.input.email == this.email && this.input.password == this.password) {
+
+        _this.$emit("signin", true); //           //  this.$router.replace("layout");
+        //         }
+        //         else{
+        //         }
+
+      })["catch"](function (error) {
+        console.log(error);
+      }); //    if(this.input.username != "" && this.input.password != "") {
+      //             if(this.input.username == this.$parent.mockAccount.username && this.input.password == this.$parent.mockAccount.password) {
+      //                 this.$emit("signin", true);
+      //               //  this.$router.replace("layout");
+      //             }
+      //             else {
+      //                 console.log("The username and / or password is incorrect");
+      //             }
+      //         } else {
+      //             console.log("A username and password must be present");
+      //         }
+    },
+    reg: function reg() {
+      this.$emit('reg', true);
+      console.log('reg');
+    }
+  }
+});
+
+/***/ }),
+
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/SignUp.vue?vue&type=script&lang=js&":
+/*!**********************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/admin/views/partials/header/SignUp.vue?vue&type=script&lang=js& ***!
+  \**********************************************************************************************************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! axios */ "./node_modules/axios/index.js");
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_0__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  data: function data() {
+    return {
+      input: {
+        fullname: "",
+        email: "",
+        password: "",
+        rpassword: ""
+      }
+    };
+  },
+  methods: {
+    cancelBtn: function cancelBtn() {
+      this.$emit("cancelBtn");
+    },
+    regSignUp: function regSignUp() {
+      var _this = this;
+
+      axios__WEBPACK_IMPORTED_MODULE_0___default.a.post("https://reqres.in/api/register", {
+        fullname: this.input.fullname,
+        email: this.input.email,
+        password: this.input.password,
+        rpassword: this.input.rpassword
+      }).then(function (response) {
+        console.log(response); //   if(this.input.email != "" && this.input.password != "") {
+        //        if(this.input.email == this.email && this.input.password == this.password) {
+
+        _this.$emit("regSignUp", true);
+      })["catch"](function (error) {
+        console.log(error);
+      });
+    }
+  }
+});
+
+/***/ }),
+
 /***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/header-top/Brand.vue?vue&type=script&lang=js&":
 /*!********************************************************************************************************************************************************************************************!*\
   !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/admin/views/partials/header/header-top/Brand.vue?vue&type=script&lang=js& ***!
@@ -1472,7 +3832,16 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-/* harmony default export */ __webpack_exports__["default"] = ({});
+/* harmony default export */ __webpack_exports__["default"] = ({
+  props: {
+    disable: true
+  },
+  methods: {
+    logoutHandle: function logoutHandle() {
+      this.$emit('logoutHandle');
+    }
+  }
+});
 
 /***/ }),
 
@@ -3916,55 +6285,68 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c(
-    "div",
-    [
-      _c("loader"),
-      _vm._v(" "),
-      _c(
-        "div",
-        { staticClass: "m-grid m-grid--hor m-grid--root m-page" },
-        [
-          _c("app-header"),
-          _vm._v(" "),
-          _c(
-            "div",
-            {
-              staticClass:
-                "m-grid__item m-grid__item--fluid  m-grid m-grid--ver-desktop m-grid--desktop m-page__container m-body"
-            },
-            [
-              _c(
-                "div",
-                { staticClass: "m-grid__item m-grid__item--fluid m-wrapper" },
-                [
-                  _c("sub-header"),
-                  _vm._v(" "),
-                  _c(
-                    "div",
-                    { staticClass: "m-content" },
-                    [_c("router-view")],
-                    1
-                  )
-                ],
-                1
-              )
-            ]
-          ),
-          _vm._v(" "),
-          _c("ffooter")
-        ],
-        1
-      ),
-      _vm._v(" "),
-      _c("sidebar"),
-      _vm._v(" "),
-      _c("scrolltop"),
-      _vm._v(" "),
-      _c("qnav")
-    ],
-    1
-  )
+  return _c("div", [
+    _vm.log == "dashboard"
+      ? _c(
+          "div",
+          [
+            _c("loader"),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "m-grid m-grid--hor m-grid--root m-page" },
+              [
+                _c("app-header", { on: { logoutHandle: _vm.logoutHandle } }),
+                _vm._v(" "),
+                _c(
+                  "div",
+                  {
+                    staticClass:
+                      "m-grid__item m-grid__item--fluid  m-grid m-grid--ver-desktop m-grid--desktop m-page__container m-body"
+                  },
+                  [
+                    _c(
+                      "div",
+                      {
+                        staticClass:
+                          "m-grid__item m-grid__item--fluid m-wrapper"
+                      },
+                      [
+                        _c("sub-header"),
+                        _vm._v(" "),
+                        _c(
+                          "div",
+                          { staticClass: "m-content" },
+                          [_c("router-view")],
+                          1
+                        )
+                      ],
+                      1
+                    )
+                  ]
+                ),
+                _vm._v(" "),
+                _c("ffooter")
+              ],
+              1
+            ),
+            _vm._v(" "),
+            _c("sidebar"),
+            _vm._v(" "),
+            _c("scrolltop"),
+            _vm._v(" "),
+            _c("qnav")
+          ],
+          1
+        )
+      : _vm.log == "signup"
+      ? _c("div", [_c("SignUp", { on: { cancelBtn: _vm.cancelBtn } })], 1)
+      : _c(
+          "div",
+          [_c("login", { on: { reg: _vm.register, signin: _vm.signin } })],
+          1
+        )
+  ])
 }
 var staticRenderFns = []
 render._withStripped = true
@@ -4266,7 +6648,11 @@ var render = function() {
             _c(
               "div",
               { staticClass: "m-stack m-stack--ver m-stack--desktop" },
-              [_c("brand"), _vm._v(" "), _c("topbar")],
+              [
+                _c("brand"),
+                _vm._v(" "),
+                _c("topbar", { on: { logoutHandle: _vm.logoutHandle } })
+              ],
               1
             )
           ]
@@ -6246,6 +8632,859 @@ render._withStripped = true
 
 /***/ }),
 
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/LogIn.vue?vue&type=template&id=2b8434d6&":
+/*!*************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/admin/views/partials/header/LogIn.vue?vue&type=template&id=2b8434d6& ***!
+  \*************************************************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c("div", [
+    _c("div", { staticClass: "m-grid m-grid--hor m-grid--root m-page" }, [
+      _c(
+        "div",
+        {
+          staticClass:
+            "m-grid__item m-grid__item--fluid m-grid m-grid--desktop m-grid--ver-desktop m-grid--hor-tablet-and-mobile m-login m-login--6",
+          attrs: { id: "m_login" }
+        },
+        [
+          _vm._m(0),
+          _vm._v(" "),
+          _c(
+            "div",
+            {
+              staticClass:
+                "m-grid__item m-grid__item--fluid  m-grid__item--order-tablet-and-mobile-1  m-login__wrapper"
+            },
+            [
+              _c("div", { staticClass: "m-login__head" }, [
+                _c("span", [_vm._v("Don't have an account?")]),
+                _vm._v(" "),
+                _c(
+                  "a",
+                  {
+                    staticClass: "m-link m--font-danger",
+                    on: { click: _vm.reg }
+                  },
+                  [_vm._v("Sign Up")]
+                )
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "m-login__body" }, [
+                _c("div", { staticClass: "m-login__signin" }, [
+                  _vm._m(1),
+                  _vm._v(" "),
+                  _c(
+                    "form",
+                    {
+                      staticClass: "m-login__form m-form",
+                      attrs: { action: "" }
+                    },
+                    [
+                      _c("div", { staticClass: "form-group m-form__group" }, [
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.input.email,
+                              expression: "input.email"
+                            }
+                          ],
+                          staticClass: "form-control m-input",
+                          attrs: {
+                            type: "email",
+                            placeholder: "email",
+                            name: "email",
+                            autocomplete: "off"
+                          },
+                          domProps: { value: _vm.input.email },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.$set(_vm.input, "email", $event.target.value)
+                            }
+                          }
+                        })
+                      ]),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "form-group m-form__group" }, [
+                        _c("input", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: _vm.input.password,
+                              expression: "input.password"
+                            }
+                          ],
+                          staticClass:
+                            "form-control m-input m-login__form-input--last",
+                          attrs: {
+                            type: "password",
+                            placeholder: "Password",
+                            name: "password"
+                          },
+                          domProps: { value: _vm.input.password },
+                          on: {
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.$set(
+                                _vm.input,
+                                "password",
+                                $event.target.value
+                              )
+                            }
+                          }
+                        })
+                      ])
+                    ]
+                  ),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "m-login__action" }, [
+                    _vm._m(2),
+                    _vm._v(" "),
+                    _c("a", { attrs: { href: "#" } }, [
+                      _c(
+                        "button",
+                        {
+                          staticClass:
+                            "btn btn-primary m-btn m-btn--pill m-btn--custom m-btn--air m-login__btn m-login__btn--primary",
+                          attrs: { id: "m_login_signin_submit" },
+                          on: { click: _vm.signin }
+                        },
+                        [_vm._v("Sign In")]
+                      )
+                    ])
+                  ]),
+                  _vm._v(" "),
+                  _vm._m(3),
+                  _vm._v(" "),
+                  _vm._m(4)
+                ])
+              ])
+            ]
+          )
+        ]
+      )
+    ]),
+    _vm._v(" "),
+    _c("div")
+  ])
+}
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "div",
+      {
+        staticClass:
+          "m-grid__item   m-grid__item--order-tablet-and-mobile-2  m-grid m-grid--hor m-login__aside ",
+        staticStyle: {
+          "background-image":
+            "url(../../../../../../public/assets/app/media/img/bg/bg-4.jpg)"
+        }
+      },
+      [
+        _c("div", { staticClass: "m-grid__item" }, [
+          _c("div", { staticClass: "m-login__logo" }, [
+            _c("a", { attrs: { href: "#" } }, [
+              _c("img", {
+                attrs: {
+                  src: __webpack_require__(/*! ../../../../../../public/assets/app/media/img/logos/logo-4.png */ "./public/assets/app/media/img/logos/logo-4.png")
+                }
+              })
+            ])
+          ])
+        ]),
+        _vm._v(" "),
+        _c(
+          "div",
+          {
+            staticClass: "m-grid__item m-grid__item--fluid m-grid m-grid--ver"
+          },
+          [
+            _c("div", { staticClass: "m-grid__item m-grid__item--middle" }, [
+              _c("span", { staticClass: "m-login__title" }, [
+                _vm._v("Whatever CTA's wave purpose important exit element")
+              ]),
+              _vm._v(" "),
+              _c("span", { staticClass: "m-login__subtitle" }, [
+                _vm._v("Lorem ipsum amet estudiat")
+              ])
+            ])
+          ]
+        ),
+        _vm._v(" "),
+        _c("div", { staticClass: "m-grid__item" }, [
+          _c("div", { staticClass: "m-login__info" }, [
+            _c("div", { staticClass: "m-login__section" }, [
+              _c("a", { staticClass: "m-link", attrs: { href: "#" } }, [
+                _vm._v("copy 2018 Metronic")
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "m-login__section" }, [
+              _c("a", { staticClass: "m-link", attrs: { href: "#" } }, [
+                _vm._v("Privacy")
+              ]),
+              _vm._v(" "),
+              _c("a", { staticClass: "m-link", attrs: { href: "#" } }, [
+                _vm._v("Legal")
+              ]),
+              _vm._v(" "),
+              _c("a", { staticClass: "m-link", attrs: { href: "#" } }, [
+                _vm._v("Contact")
+              ])
+            ])
+          ])
+        ])
+      ]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-login__title" }, [
+      _c("h3", [_vm._v(" Account")])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("a", { staticClass: "m-link", attrs: { href: "#" } }, [
+      _c("span", [_vm._v("Forgot Password ?")])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-login__form-divider" }, [
+      _c("div", { staticClass: "m-divider" }, [
+        _c("span"),
+        _vm._v(" "),
+        _c("span", [_vm._v("OR")]),
+        _vm._v(" "),
+        _c("span")
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-login__options" }, [
+      _c(
+        "a",
+        {
+          staticClass:
+            "btn btn-primary m-btn m-btn--pill  m-btn  m-btn m-btn--icon",
+          attrs: { href: "#" }
+        },
+        [
+          _c("span", [
+            _c("i", { staticClass: "fab fa-facebook-f" }),
+            _vm._v(" "),
+            _c("span", [_vm._v("Facebook")])
+          ])
+        ]
+      ),
+      _vm._v(" "),
+      _c(
+        "a",
+        {
+          staticClass:
+            "btn btn-info m-btn m-btn--pill  m-btn  m-btn m-btn--icon",
+          attrs: { href: "#" }
+        },
+        [
+          _c("span", [
+            _c("i", { staticClass: "fab fa-twitter" }),
+            _vm._v(" "),
+            _c("span", [_vm._v("Twitter")])
+          ])
+        ]
+      ),
+      _vm._v(" "),
+      _c(
+        "a",
+        {
+          staticClass:
+            "btn btn-danger m-btn m-btn--pill  m-btn  m-btn m-btn--icon",
+          attrs: { href: "#" }
+        },
+        [
+          _c("span", [
+            _c("i", { staticClass: "fab fa-google" }),
+            _vm._v(" "),
+            _c("span", [_vm._v("Google")])
+          ])
+        ]
+      )
+    ])
+  }
+]
+render._withStripped = true
+
+
+
+/***/ }),
+
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/SignUp.vue?vue&type=template&id=10050e5c&":
+/*!**************************************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/admin/views/partials/header/SignUp.vue?vue&type=template&id=10050e5c& ***!
+  \**************************************************************************************************************************************************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "render", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c(
+    "div",
+    {
+      staticClass:
+        "m--skin- m-header--fixed m-header--fixed-mobile m-aside-left--enabled m-aside-left--skin-dark m-aside-left--fixed m-aside-left--offcanvas m-footer--push m-aside--offcanvas-default"
+    },
+    [
+      _c("div", { staticClass: "m-grid m-grid--hor m-grid--root m-page" }, [
+        _c(
+          "div",
+          {
+            staticClass:
+              "m-grid__item m-grid__item--fluid m-grid m-grid--ver-desktop m-grid--desktop m-grid--tablet-and-mobile m-grid--hor-tablet-and-mobile m-login m-login--1 m-login--signup",
+            attrs: { id: "m_login" }
+          },
+          [
+            _c(
+              "div",
+              {
+                staticClass:
+                  "m-grid__item m-grid__item--order-tablet-and-mobile-2 m-login__aside"
+              },
+              [
+                _c(
+                  "div",
+                  { staticClass: "m-stack m-stack--hor m-stack--desktop" },
+                  [
+                    _c(
+                      "div",
+                      { staticClass: "m-stack__item m-stack__item--fluid" },
+                      [
+                        _c("div", { staticClass: "m-login__wrapper" }, [
+                          _c("div", { staticClass: "m-login__logo" }),
+                          _vm._v(" "),
+                          _vm._m(0),
+                          _vm._v(" "),
+                          _c(
+                            "div",
+                            { staticClass: "m-login__signup animated flipInX" },
+                            [
+                              _vm._m(1),
+                              _vm._v(" "),
+                              _c(
+                                "form",
+                                {
+                                  staticClass: "m-login__form m-form",
+                                  attrs: { action: "" }
+                                },
+                                [
+                                  _c(
+                                    "div",
+                                    { staticClass: "form-group m-form__group" },
+                                    [
+                                      _c("input", {
+                                        directives: [
+                                          {
+                                            name: "model",
+                                            rawName: "v-model",
+                                            value: _vm.input.fullname,
+                                            expression: "input.fullname"
+                                          }
+                                        ],
+                                        staticClass: "form-control m-input",
+                                        attrs: {
+                                          type: "text",
+                                          placeholder: "Fullname",
+                                          name: "fullname"
+                                        },
+                                        domProps: { value: _vm.input.fullname },
+                                        on: {
+                                          input: function($event) {
+                                            if ($event.target.composing) {
+                                              return
+                                            }
+                                            _vm.$set(
+                                              _vm.input,
+                                              "fullname",
+                                              $event.target.value
+                                            )
+                                          }
+                                        }
+                                      })
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "form-group m-form__group" },
+                                    [
+                                      _c("input", {
+                                        directives: [
+                                          {
+                                            name: "model",
+                                            rawName: "v-model",
+                                            value: _vm.input.email,
+                                            expression: "input.email"
+                                          }
+                                        ],
+                                        staticClass: "form-control m-input",
+                                        attrs: {
+                                          type: "text",
+                                          placeholder: "Email",
+                                          name: "email",
+                                          autocomplete: "off"
+                                        },
+                                        domProps: { value: _vm.input.email },
+                                        on: {
+                                          input: function($event) {
+                                            if ($event.target.composing) {
+                                              return
+                                            }
+                                            _vm.$set(
+                                              _vm.input,
+                                              "email",
+                                              $event.target.value
+                                            )
+                                          }
+                                        }
+                                      })
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "form-group m-form__group" },
+                                    [
+                                      _c("input", {
+                                        directives: [
+                                          {
+                                            name: "model",
+                                            rawName: "v-model",
+                                            value: _vm.input.password,
+                                            expression: "input.password"
+                                          }
+                                        ],
+                                        staticClass: "form-control m-input",
+                                        attrs: {
+                                          type: "password",
+                                          placeholder: "Password",
+                                          name: "password"
+                                        },
+                                        domProps: { value: _vm.input.password },
+                                        on: {
+                                          input: function($event) {
+                                            if ($event.target.composing) {
+                                              return
+                                            }
+                                            _vm.$set(
+                                              _vm.input,
+                                              "password",
+                                              $event.target.value
+                                            )
+                                          }
+                                        }
+                                      })
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "form-group m-form__group" },
+                                    [
+                                      _c("input", {
+                                        directives: [
+                                          {
+                                            name: "model",
+                                            rawName: "v-model",
+                                            value: _vm.input.rpassword,
+                                            expression: "input.rpassword"
+                                          }
+                                        ],
+                                        staticClass:
+                                          "form-control m-input m-login__form-input--last",
+                                        attrs: {
+                                          type: "password",
+                                          placeholder: "Confirm Password",
+                                          name: "rpassword"
+                                        },
+                                        domProps: {
+                                          value: _vm.input.rpassword
+                                        },
+                                        on: {
+                                          input: function($event) {
+                                            if ($event.target.composing) {
+                                              return
+                                            }
+                                            _vm.$set(
+                                              _vm.input,
+                                              "rpassword",
+                                              $event.target.value
+                                            )
+                                          }
+                                        }
+                                      })
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _vm._m(2),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-login__form-action" },
+                                    [
+                                      _c(
+                                        "button",
+                                        {
+                                          staticClass:
+                                            "btn btn-focus m-btn m-btn--pill m-btn--custom m-btn--air",
+                                          attrs: {
+                                            id: "m_login_signup_submit"
+                                          },
+                                          on: {
+                                            click: function($event) {
+                                              $event.preventDefault()
+                                              return _vm.regSignUp($event)
+                                            }
+                                          }
+                                        },
+                                        [
+                                          _vm._v(
+                                            "\n                                                Sign Up\n                                            "
+                                          )
+                                        ]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "button",
+                                        {
+                                          staticClass:
+                                            "btn btn-outline-focus  m-btn m-btn--pill m-btn--custom",
+                                          attrs: {
+                                            id: "m_login_signup_cancel"
+                                          },
+                                          on: { click: _vm.cancelBtn }
+                                        },
+                                        [
+                                          _vm._v(
+                                            "\n                                                Cancel\n                                            "
+                                          )
+                                        ]
+                                      )
+                                    ]
+                                  )
+                                ]
+                              )
+                            ]
+                          ),
+                          _vm._v(" "),
+                          _vm._m(3)
+                        ])
+                      ]
+                    ),
+                    _vm._v(" "),
+                    _vm._m(4)
+                  ]
+                )
+              ]
+            ),
+            _vm._v(" "),
+            _vm._m(5)
+          ]
+        )
+      ])
+    ]
+  )
+}
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-login__signin" }, [
+      _c("div", { staticClass: "m-login__head" }, [
+        _c("h3", { staticClass: "m-login__title" }, [
+          _vm._v(
+            "\n                                            Sign In To Admin\n                                        "
+          )
+        ])
+      ]),
+      _vm._v(" "),
+      _c(
+        "form",
+        { staticClass: "m-login__form m-form", attrs: { action: "" } },
+        [
+          _c("div", { staticClass: "form-group m-form__group" }, [
+            _c("input", {
+              staticClass: "form-control m-input",
+              attrs: {
+                type: "text",
+                placeholder: "Email",
+                name: "email",
+                autocomplete: "off"
+              }
+            })
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "form-group m-form__group" }, [
+            _c("input", {
+              staticClass: "form-control m-input m-login__form-input--last",
+              attrs: {
+                type: "password",
+                placeholder: "Password",
+                name: "password"
+              }
+            })
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "row m-login__form-sub" }, [
+            _c("div", { staticClass: "col m--align-left" }, [
+              _c("label", { staticClass: "m-checkbox m-checkbox--focus" }, [
+                _c("input", { attrs: { type: "checkbox", name: "remember" } }),
+                _vm._v(
+                  "\n                                                    Remember me\n                                                    "
+                ),
+                _c("span")
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "col m--align-right" }, [
+              _c(
+                "a",
+                {
+                  staticClass: "m-link",
+                  attrs: { href: "javascript:;", id: "m_login_forget_password" }
+                },
+                [_vm._v("Forget Password ?")]
+              )
+            ])
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "m-login__form-action" }, [
+            _c(
+              "button",
+              {
+                staticClass:
+                  "btn btn-focus m-btn m-btn--pill m-btn--custom m-btn--air",
+                attrs: { id: "m_login_signin_submit" }
+              },
+              [
+                _vm._v(
+                  "\n                                                Sign In\n                                            "
+                )
+              ]
+            )
+          ])
+        ]
+      )
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-login__head" }, [
+      _c("h3", { staticClass: "m-login__title" }, [_vm._v("Sign Up")]),
+      _vm._v(" "),
+      _c("div", { staticClass: "m-login__desc" }, [
+        _vm._v(
+          "\n                                            Enter your details to create your\n                                            account:\n                                        "
+        )
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "div",
+      { staticClass: "row form-group m-form__group m-login__form-sub" },
+      [
+        _c("div", { staticClass: "col m--align-left" }, [
+          _c("label", { staticClass: "m-checkbox m-checkbox--focus" }, [
+            _c("input", { attrs: { type: "checkbox", name: "agree" } }),
+            _vm._v(
+              "\n                                                    I Agree the\n                                                    "
+            ),
+            _c(
+              "a",
+              { staticClass: "m-link m-link--focus", attrs: { href: "#" } },
+              [_vm._v("terms and conditions")]
+            ),
+            _vm._v(".\n                                                    "),
+            _c("span")
+          ]),
+          _vm._v(" "),
+          _c("span", { staticClass: "m-form__help" })
+        ])
+      ]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-login__forget-password" }, [
+      _c("div", { staticClass: "m-login__head" }, [
+        _c("h3", { staticClass: "m-login__title" }, [
+          _vm._v(
+            "\n                                            Forgotten Password ?\n                                        "
+          )
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "m-login__desc" }, [
+          _vm._v(
+            "\n                                            Enter your email to reset your\n                                            password:\n                                        "
+          )
+        ])
+      ]),
+      _vm._v(" "),
+      _c(
+        "form",
+        { staticClass: "m-login__form m-form", attrs: { action: "" } },
+        [
+          _c("div", { staticClass: "form-group m-form__group" }, [
+            _c("input", {
+              staticClass: "form-control m-input",
+              attrs: {
+                type: "text",
+                placeholder: "Email",
+                name: "email",
+                id: "m_email",
+                autocomplete: "off"
+              }
+            })
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "m-login__form-action" }, [
+            _c(
+              "button",
+              {
+                staticClass:
+                  "btn btn-focus m-btn m-btn--pill m-btn--custom m-btn--air",
+                attrs: { id: "m_login_forget_password_submit" }
+              },
+              [
+                _vm._v(
+                  "\n                                                Request\n                                            "
+                )
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "button",
+              {
+                staticClass:
+                  "btn btn-outline-focus m-btn m-btn--pill m-btn--custom",
+                attrs: { id: "m_login_forget_password_cancel" }
+              },
+              [
+                _vm._v(
+                  "\n                                                Cancel\n                                            "
+                )
+              ]
+            )
+          ])
+        ]
+      )
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-stack__item m-stack__item--center" }, [
+      _c("div", { staticClass: "m-login__account" }, [
+        _c("span", { staticClass: "m-login__account-msg" }, [
+          _vm._v(
+            "\n                                    Don't have an account yet ? "
+          )
+        ]),
+        _vm._v("  \n                                "),
+        _c(
+          "a",
+          {
+            staticClass: "m-link m-link--focus m-login__account-link",
+            attrs: { href: "javascript:;", id: "m_login_signup" }
+          },
+          [_vm._v("Sign Up")]
+        )
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "div",
+      {
+        staticClass:
+          "m-grid__item m-grid__item--fluid m-grid m-grid--center m-grid--hor m-grid__item--order-tablet-and-mobile-1\tm-login__content m-grid-item--center",
+        staticStyle: {
+          "background-image": "url(../../../assets/app/media/img//bg/bg-4.jpg)"
+        }
+      },
+      [
+        _c("div", { staticClass: "m-grid__item" }, [
+          _c("h3", { staticClass: "m-login__welcome" }, [
+            _vm._v("Join Our Community")
+          ]),
+          _vm._v(" "),
+          _c("p", { staticClass: "m-login__msg" }, [
+            _vm._v(
+              "\n                            Lorem ipsum dolor sit amet, coectetuer adipiscing"
+            ),
+            _c("br"),
+            _vm._v(
+              "elit\n                            sed diam nonummy et nibh euismod\n                        "
+            )
+          ])
+        ])
+      ]
+    )
+  }
+]
+render._withStripped = true
+
+
+
+/***/ }),
+
 /***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/header-top/Brand.vue?vue&type=template&id=00d55271&":
 /*!************************************************************************************************************************************************************************************************************************************!*\
   !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/admin/views/partials/header/header-top/Brand.vue?vue&type=template&id=00d55271& ***!
@@ -6614,7 +9853,7 @@ var render = function() {
                               "router-link",
                               {
                                 staticClass: "m-menu__link ",
-                                attrs: { to: "/" }
+                                attrs: { to: "/Dashboard" }
                               },
                               [
                                 _c("i", {
@@ -6827,7 +10066,98 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _vm._m(0)
+  return _c(
+    "div",
+    {
+      staticClass: "m-stack__item m-stack__item--right m-header-head",
+      attrs: { id: "m_header_nav" }
+    },
+    [
+      _c(
+        "div",
+        {
+          staticClass: "m-topbar  m-stack m-stack--ver m-stack--general",
+          attrs: { id: "m_header_topbar" }
+        },
+        [
+          _c("div", { staticClass: "m-stack__item m-topbar__nav-wrapper" }, [
+            _c("ul", { staticClass: "m-topbar__nav m-nav m-nav--inline" }, [
+              _vm._m(0),
+              _vm._v(" "),
+              _vm._m(1),
+              _vm._v(" "),
+              _vm._m(2),
+              _vm._v(" "),
+              _c(
+                "li",
+                {
+                  staticClass:
+                    "m-nav__item m-dropdown m-dropdown--medium m-dropdown--arrow  m-dropdown--align-right m-dropdown--mobile-full-width m-dropdown--skin-light",
+                  attrs: { "m-dropdown-toggle": "click" }
+                },
+                [
+                  _vm._m(3),
+                  _vm._v(" "),
+                  _c("div", { staticClass: "m-dropdown__wrapper" }, [
+                    _c("span", {
+                      staticClass:
+                        "m-dropdown__arrow m-dropdown__arrow--right m-dropdown__arrow--adjust"
+                    }),
+                    _vm._v(" "),
+                    _c("div", { staticClass: "m-dropdown__inner" }, [
+                      _vm._m(4),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "m-dropdown__body" }, [
+                        _c("div", { staticClass: "m-dropdown__content" }, [
+                          _c("ul", { staticClass: "m-nav m-nav--skin-light" }, [
+                            _vm._m(5),
+                            _vm._v(" "),
+                            _vm._m(6),
+                            _vm._v(" "),
+                            _vm._m(7),
+                            _vm._v(" "),
+                            _vm._m(8),
+                            _vm._v(" "),
+                            _c("li", {
+                              staticClass:
+                                "m-nav__separator m-nav__separator--fit"
+                            }),
+                            _vm._v(" "),
+                            _vm._m(9),
+                            _vm._v(" "),
+                            _vm._m(10),
+                            _vm._v(" "),
+                            _c("li", {
+                              staticClass:
+                                "m-nav__separator m-nav__separator--fit"
+                            }),
+                            _vm._v(" "),
+                            _c("li", { staticClass: "m-nav__item" }, [
+                              _c(
+                                "a",
+                                {
+                                  staticClass:
+                                    "btn m-btn--pill    btn-secondary m-btn m-btn--custom m-btn--label-brand m-btn--bolder",
+                                  on: { click: _vm.logoutHandle }
+                                },
+                                [_vm._v("Logout")]
+                              )
+                            ])
+                          ])
+                        ])
+                      ])
+                    ])
+                  ])
+                ]
+              ),
+              _vm._v(" "),
+              _vm._m(11)
+            ])
+          ])
+        ]
+      )
+    ]
+  )
 }
 var staticRenderFns = [
   function() {
@@ -6835,1450 +10165,1078 @@ var staticRenderFns = [
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
     return _c(
-      "div",
+      "li",
       {
-        staticClass: "m-stack__item m-stack__item--right m-header-head",
-        attrs: { id: "m_header_nav" }
+        staticClass:
+          "\n\t\tm-nav__item m-nav__item--focus m-dropdown m-dropdown--large m-dropdown--arrow m-dropdown--align-center m-dropdown--mobile-full-width m-dropdown--skin-light\tm-list-search m-list-search--skin-light",
+        attrs: {
+          "m-dropdown-toggle": "click",
+          "m-dropdown-persistent": "1",
+          id: "m_quicksearch",
+          "m-quicksearch-mode": "dropdown"
+        }
       },
       [
         _c(
-          "div",
+          "a",
           {
-            staticClass: "m-topbar  m-stack m-stack--ver m-stack--general",
-            attrs: { id: "m_header_topbar" }
+            staticClass: "m-nav__link m-dropdown__toggle",
+            attrs: { href: "#" }
           },
           [
-            _c("div", { staticClass: "m-stack__item m-topbar__nav-wrapper" }, [
-              _c("ul", { staticClass: "m-topbar__nav m-nav m-nav--inline" }, [
+            _c("span", { staticClass: "m-nav__link-icon" }, [
+              _c("span", { staticClass: "m-nav__link-icon-wrapper" }, [
+                _c("i", { staticClass: "flaticon-search-1" })
+              ])
+            ])
+          ]
+        ),
+        _vm._v(" "),
+        _c("div", { staticClass: "m-dropdown__wrapper" }, [
+          _c("span", {
+            staticClass: "m-dropdown__arrow m-dropdown__arrow--center"
+          }),
+          _vm._v(" "),
+          _c("div", { staticClass: "m-dropdown__inner " }, [
+            _c("div", { staticClass: "m-dropdown__header" }, [
+              _c("form", { staticClass: "m-list-search__form" }, [
+                _c("div", { staticClass: "m-list-search__form-wrapper" }, [
+                  _c(
+                    "span",
+                    { staticClass: "m-list-search__form-input-wrapper" },
+                    [
+                      _c("input", {
+                        staticClass: "m-list-search__form-input",
+                        attrs: {
+                          id: "m_quicksearch_input",
+                          autocomplete: "off",
+                          type: "text",
+                          name: "q",
+                          value: "",
+                          placeholder: "Search..."
+                        }
+                      })
+                    ]
+                  ),
+                  _vm._v(" "),
+                  _c(
+                    "span",
+                    {
+                      staticClass: "m-list-search__form-icon-close",
+                      attrs: { id: "m_quicksearch_close" }
+                    },
+                    [_c("i", { staticClass: "la la-remove" })]
+                  )
+                ])
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "m-dropdown__body" }, [
+              _c(
+                "div",
+                {
+                  staticClass: "m-dropdown__scrollable m-scrollable",
+                  attrs: {
+                    "data-scrollable": "true",
+                    "data-height": "300",
+                    "data-mobile-height": "200"
+                  }
+                },
+                [_c("div", { staticClass: "m-dropdown__content" })]
+              )
+            ])
+          ])
+        ])
+      ]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "li",
+      {
+        staticClass:
+          "m-nav__item m-nav__item--accent m-dropdown m-dropdown--large m-dropdown--arrow m-dropdown--align-center \tm-dropdown--mobile-full-width",
+        attrs: { "m-dropdown-toggle": "click", "m-dropdown-persistent": "1" }
+      },
+      [
+        _c(
+          "a",
+          {
+            staticClass: "m-nav__link m-dropdown__toggle",
+            attrs: { href: "#", id: "m_topbar_notification_icon" }
+          },
+          [
+            _c("span", {
+              staticClass:
+                "m-nav__link-badge m-badge m-badge--dot m-badge--dot-small m-badge--danger"
+            }),
+            _vm._v(" "),
+            _c("span", { staticClass: "m-nav__link-icon" }, [
+              _c("span", { staticClass: "m-nav__link-icon-wrapper" }, [
+                _c("i", { staticClass: "flaticon-alarm" })
+              ])
+            ])
+          ]
+        ),
+        _vm._v(" "),
+        _c("div", { staticClass: "m-dropdown__wrapper" }, [
+          _c("span", {
+            staticClass: "m-dropdown__arrow m-dropdown__arrow--center"
+          }),
+          _vm._v(" "),
+          _c("div", { staticClass: "m-dropdown__inner" }, [
+            _c("div", { staticClass: "m-dropdown__header m--align-center" }, [
+              _c("span", { staticClass: "m-dropdown__header-title" }, [
+                _vm._v("9 New")
+              ]),
+              _vm._v(" "),
+              _c("span", { staticClass: "m-dropdown__header-subtitle" }, [
+                _vm._v("User Notifications")
+              ])
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "m-dropdown__body" }, [
+              _c("div", { staticClass: "m-dropdown__content" }, [
                 _c(
-                  "li",
+                  "ul",
                   {
                     staticClass:
-                      "\n\t\tm-nav__item m-nav__item--focus m-dropdown m-dropdown--large m-dropdown--arrow m-dropdown--align-center m-dropdown--mobile-full-width m-dropdown--skin-light\tm-list-search m-list-search--skin-light",
-                    attrs: {
-                      "m-dropdown-toggle": "click",
-                      "m-dropdown-persistent": "1",
-                      id: "m_quicksearch",
-                      "m-quicksearch-mode": "dropdown"
-                    }
+                      "nav nav-tabs m-tabs m-tabs-line m-tabs-line--brand",
+                    attrs: { role: "tablist" }
                   },
                   [
-                    _c(
-                      "a",
-                      {
-                        staticClass: "m-nav__link m-dropdown__toggle",
-                        attrs: { href: "#" }
-                      },
-                      [
-                        _c("span", { staticClass: "m-nav__link-icon" }, [
-                          _c(
-                            "span",
-                            { staticClass: "m-nav__link-icon-wrapper" },
-                            [_c("i", { staticClass: "flaticon-search-1" })]
+                    _c("li", { staticClass: "nav-item m-tabs__item" }, [
+                      _c(
+                        "a",
+                        {
+                          staticClass: "nav-link m-tabs__link active",
+                          attrs: {
+                            "data-toggle": "tab",
+                            href: "#topbar_notifications_notifications",
+                            role: "tab"
+                          }
+                        },
+                        [
+                          _vm._v(
+                            "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tAlerts\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
                           )
-                        ])
-                      ]
-                    ),
+                        ]
+                      )
+                    ]),
                     _vm._v(" "),
-                    _c("div", { staticClass: "m-dropdown__wrapper" }, [
-                      _c("span", {
-                        staticClass:
-                          "m-dropdown__arrow m-dropdown__arrow--center"
-                      }),
-                      _vm._v(" "),
-                      _c("div", { staticClass: "m-dropdown__inner " }, [
-                        _c("div", { staticClass: "m-dropdown__header" }, [
-                          _c("form", { staticClass: "m-list-search__form" }, [
-                            _c(
-                              "div",
-                              { staticClass: "m-list-search__form-wrapper" },
-                              [
-                                _c(
-                                  "span",
-                                  {
-                                    staticClass:
-                                      "m-list-search__form-input-wrapper"
-                                  },
-                                  [
-                                    _c("input", {
-                                      staticClass: "m-list-search__form-input",
-                                      attrs: {
-                                        id: "m_quicksearch_input",
-                                        autocomplete: "off",
-                                        type: "text",
-                                        name: "q",
-                                        value: "",
-                                        placeholder: "Search..."
-                                      }
-                                    })
-                                  ]
-                                ),
-                                _vm._v(" "),
-                                _c(
-                                  "span",
-                                  {
-                                    staticClass:
-                                      "m-list-search__form-icon-close",
-                                    attrs: { id: "m_quicksearch_close" }
-                                  },
-                                  [_c("i", { staticClass: "la la-remove" })]
-                                )
-                              ]
-                            )
-                          ])
-                        ]),
-                        _vm._v(" "),
-                        _c("div", { staticClass: "m-dropdown__body" }, [
+                    _c("li", { staticClass: "nav-item m-tabs__item" }, [
+                      _c(
+                        "a",
+                        {
+                          staticClass: "nav-link m-tabs__link",
+                          attrs: {
+                            "data-toggle": "tab",
+                            href: "#topbar_notifications_events",
+                            role: "tab"
+                          }
+                        },
+                        [_vm._v("Events")]
+                      )
+                    ]),
+                    _vm._v(" "),
+                    _c("li", { staticClass: "nav-item m-tabs__item" }, [
+                      _c(
+                        "a",
+                        {
+                          staticClass: "nav-link m-tabs__link",
+                          attrs: {
+                            "data-toggle": "tab",
+                            href: "#topbar_notifications_logs",
+                            role: "tab"
+                          }
+                        },
+                        [_vm._v("Logs")]
+                      )
+                    ])
+                  ]
+                ),
+                _vm._v(" "),
+                _c("div", { staticClass: "tab-content" }, [
+                  _c(
+                    "div",
+                    {
+                      staticClass: "tab-pane active",
+                      attrs: {
+                        id: "topbar_notifications_notifications",
+                        role: "tabpanel"
+                      }
+                    },
+                    [
+                      _c(
+                        "div",
+                        {
+                          staticClass: "m-scrollable",
+                          attrs: {
+                            "data-scrollable": "true",
+                            "data-height": "250",
+                            "data-mobile-height": "200"
+                          }
+                        },
+                        [
                           _c(
                             "div",
                             {
                               staticClass:
-                                "m-dropdown__scrollable m-scrollable",
-                              attrs: {
-                                "data-scrollable": "true",
-                                "data-height": "300",
-                                "data-mobile-height": "200"
-                              }
+                                "m-list-timeline m-list-timeline--skin-light"
                             },
-                            [_c("div", { staticClass: "m-dropdown__content" })]
-                          )
-                        ])
-                      ])
-                    ])
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "li",
-                  {
-                    staticClass:
-                      "m-nav__item m-nav__item--accent m-dropdown m-dropdown--large m-dropdown--arrow m-dropdown--align-center \tm-dropdown--mobile-full-width",
-                    attrs: {
-                      "m-dropdown-toggle": "click",
-                      "m-dropdown-persistent": "1"
-                    }
-                  },
-                  [
-                    _c(
-                      "a",
-                      {
-                        staticClass: "m-nav__link m-dropdown__toggle",
-                        attrs: { href: "#", id: "m_topbar_notification_icon" }
-                      },
-                      [
-                        _c("span", {
-                          staticClass:
-                            "m-nav__link-badge m-badge m-badge--dot m-badge--dot-small m-badge--danger"
-                        }),
-                        _vm._v(" "),
-                        _c("span", { staticClass: "m-nav__link-icon" }, [
-                          _c(
-                            "span",
-                            { staticClass: "m-nav__link-icon-wrapper" },
-                            [_c("i", { staticClass: "flaticon-alarm" })]
-                          )
-                        ])
-                      ]
-                    ),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "m-dropdown__wrapper" }, [
-                      _c("span", {
-                        staticClass:
-                          "m-dropdown__arrow m-dropdown__arrow--center"
-                      }),
-                      _vm._v(" "),
-                      _c("div", { staticClass: "m-dropdown__inner" }, [
-                        _c(
-                          "div",
-                          { staticClass: "m-dropdown__header m--align-center" },
-                          [
-                            _c(
-                              "span",
-                              { staticClass: "m-dropdown__header-title" },
-                              [_vm._v("9 New")]
-                            ),
-                            _vm._v(" "),
-                            _c(
-                              "span",
-                              { staticClass: "m-dropdown__header-subtitle" },
-                              [_vm._v("User Notifications")]
-                            )
-                          ]
-                        ),
-                        _vm._v(" "),
-                        _c("div", { staticClass: "m-dropdown__body" }, [
-                          _c("div", { staticClass: "m-dropdown__content" }, [
-                            _c(
-                              "ul",
-                              {
-                                staticClass:
-                                  "nav nav-tabs m-tabs m-tabs-line m-tabs-line--brand",
-                                attrs: { role: "tablist" }
-                              },
-                              [
-                                _c(
-                                  "li",
-                                  { staticClass: "nav-item m-tabs__item" },
-                                  [
-                                    _c(
-                                      "a",
-                                      {
+                            [
+                              _c(
+                                "div",
+                                { staticClass: "m-list-timeline__items" },
+                                [
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
                                         staticClass:
-                                          "nav-link m-tabs__link active",
-                                        attrs: {
-                                          "data-toggle": "tab",
-                                          href:
-                                            "#topbar_notifications_notifications",
-                                          role: "tab"
-                                        }
-                                      },
-                                      [
-                                        _vm._v(
-                                          "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tAlerts\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
-                                        )
-                                      ]
-                                    )
-                                  ]
-                                ),
-                                _vm._v(" "),
-                                _c(
-                                  "li",
-                                  { staticClass: "nav-item m-tabs__item" },
-                                  [
-                                    _c(
-                                      "a",
-                                      {
-                                        staticClass: "nav-link m-tabs__link",
-                                        attrs: {
-                                          "data-toggle": "tab",
-                                          href: "#topbar_notifications_events",
-                                          role: "tab"
-                                        }
-                                      },
-                                      [_vm._v("Events")]
-                                    )
-                                  ]
-                                ),
-                                _vm._v(" "),
-                                _c(
-                                  "li",
-                                  { staticClass: "nav-item m-tabs__item" },
-                                  [
-                                    _c(
-                                      "a",
-                                      {
-                                        staticClass: "nav-link m-tabs__link",
-                                        attrs: {
-                                          "data-toggle": "tab",
-                                          href: "#topbar_notifications_logs",
-                                          role: "tab"
-                                        }
-                                      },
-                                      [_vm._v("Logs")]
-                                    )
-                                  ]
-                                )
-                              ]
-                            ),
-                            _vm._v(" "),
-                            _c("div", { staticClass: "tab-content" }, [
-                              _c(
-                                "div",
-                                {
-                                  staticClass: "tab-pane active",
-                                  attrs: {
-                                    id: "topbar_notifications_notifications",
-                                    role: "tabpanel"
-                                  }
-                                },
-                                [
+                                          "m-list-timeline__badge -m-list-timeline__badge--state-success"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__text"
+                                        },
+                                        [_vm._v("12 new users registered")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("Just now")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
                                   _c(
                                     "div",
-                                    {
-                                      staticClass: "m-scrollable",
-                                      attrs: {
-                                        "data-scrollable": "true",
-                                        "data-height": "250",
-                                        "data-mobile-height": "200"
-                                      }
-                                    },
+                                    { staticClass: "m-list-timeline__item" },
                                     [
+                                      _c("span", {
+                                        staticClass: "m-list-timeline__badge"
+                                      }),
+                                      _vm._v(" "),
                                       _c(
-                                        "div",
+                                        "span",
                                         {
-                                          staticClass:
-                                            "m-list-timeline m-list-timeline--skin-light"
+                                          staticClass: "m-list-timeline__text"
                                         },
                                         [
+                                          _vm._v("System shutdown "),
                                           _c(
-                                            "div",
+                                            "span",
                                             {
                                               staticClass:
-                                                "m-list-timeline__items"
+                                                "m-badge m-badge--success m-badge--wide"
                                             },
-                                            [
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge -m-list-timeline__badge--state-success"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text"
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "12 new users registered"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("Just now")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text"
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "System shutdown "
-                                                      ),
-                                                      _c(
-                                                        "span",
-                                                        {
-                                                          staticClass:
-                                                            "m-badge m-badge--success m-badge--wide"
-                                                        },
-                                                        [_vm._v("pending")]
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("14 mins")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text"
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "New invoice received"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("20 mins")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text"
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "DB overloaded 80% "
-                                                      ),
-                                                      _c(
-                                                        "span",
-                                                        {
-                                                          staticClass:
-                                                            "m-badge m-badge--info m-badge--wide"
-                                                        },
-                                                        [_vm._v("settled")]
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("1 hr")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text"
-                                                    },
-                                                    [
-                                                      _vm._v("System error - "),
-                                                      _c(
-                                                        "a",
-                                                        {
-                                                          staticClass: "m-link",
-                                                          attrs: { href: "#" }
-                                                        },
-                                                        [_vm._v("Check")]
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("2 hrs")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item m-list-timeline__item--read"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text",
-                                                      attrs: { href: "" }
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "New order received "
-                                                      ),
-                                                      _c(
-                                                        "span",
-                                                        {
-                                                          staticClass:
-                                                            "m-badge m-badge--danger m-badge--wide"
-                                                        },
-                                                        [_vm._v("urgent")]
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("7 hrs")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item m-list-timeline__item--read"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text"
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "Production server down"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("3 hrs")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text"
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "Production server up"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("5 hrs")]
-                                                  )
-                                                ]
-                                              )
-                                            ]
-                                          )
-                                        ]
-                                      )
-                                    ]
-                                  )
-                                ]
-                              ),
-                              _vm._v(" "),
-                              _c(
-                                "div",
-                                {
-                                  staticClass: "tab-pane",
-                                  attrs: {
-                                    id: "topbar_notifications_events",
-                                    role: "tabpanel"
-                                  }
-                                },
-                                [
-                                  _c(
-                                    "div",
-                                    {
-                                      staticClass: "m-scrollable",
-                                      attrs: {
-                                        "data-scrollable": "true",
-                                        "data-height": "250",
-                                        "data-mobile-height": "200"
-                                      }
-                                    },
-                                    [
-                                      _c(
-                                        "div",
-                                        {
-                                          staticClass:
-                                            "m-list-timeline m-list-timeline--skin-light"
-                                        },
-                                        [
-                                          _c(
-                                            "div",
-                                            {
-                                              staticClass:
-                                                "m-list-timeline__items"
-                                            },
-                                            [
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge m-list-timeline__badge--state1-success"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "a",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text",
-                                                      attrs: { href: "" }
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "New order received"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("Just now")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge m-list-timeline__badge--state1-danger"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "a",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text",
-                                                      attrs: { href: "" }
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "New invoice received"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("20 mins")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge m-list-timeline__badge--state1-success"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "a",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text",
-                                                      attrs: { href: "" }
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "Production server up"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("5 hrs")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge m-list-timeline__badge--state1-info"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "a",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text",
-                                                      attrs: { href: "" }
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "New order received"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("7 hrs")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge m-list-timeline__badge--state1-info"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "a",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text",
-                                                      attrs: { href: "" }
-                                                    },
-                                                    [_vm._v("System shutdown")]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("11 mins")]
-                                                  )
-                                                ]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "div",
-                                                {
-                                                  staticClass:
-                                                    "m-list-timeline__item"
-                                                },
-                                                [
-                                                  _c("span", {
-                                                    staticClass:
-                                                      "m-list-timeline__badge m-list-timeline__badge--state1-info"
-                                                  }),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "a",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__text",
-                                                      attrs: { href: "" }
-                                                    },
-                                                    [
-                                                      _vm._v(
-                                                        "Production server down"
-                                                      )
-                                                    ]
-                                                  ),
-                                                  _vm._v(" "),
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-list-timeline__time"
-                                                    },
-                                                    [_vm._v("3 hrs")]
-                                                  )
-                                                ]
-                                              )
-                                            ]
-                                          )
-                                        ]
-                                      )
-                                    ]
-                                  )
-                                ]
-                              ),
-                              _vm._v(" "),
-                              _c(
-                                "div",
-                                {
-                                  staticClass: "tab-pane",
-                                  attrs: {
-                                    id: "topbar_notifications_logs",
-                                    role: "tabpanel"
-                                  }
-                                },
-                                [
-                                  _c(
-                                    "div",
-                                    {
-                                      staticClass:
-                                        "m-stack m-stack--ver m-stack--general",
-                                      staticStyle: { "min-height": "180px" }
-                                    },
-                                    [
-                                      _c(
-                                        "div",
-                                        {
-                                          staticClass:
-                                            "m-stack__item m-stack__item--center m-stack__item--middle"
-                                        },
-                                        [
-                                          _c("span", {}, [
-                                            _vm._v("All caught up!"),
-                                            _c("br"),
-                                            _vm._v("No new logs.")
-                                          ])
-                                        ]
-                                      )
-                                    ]
-                                  )
-                                ]
-                              )
-                            ])
-                          ])
-                        ])
-                      ])
-                    ])
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "li",
-                  {
-                    staticClass:
-                      "m-nav__item m-nav__item--danger m-dropdown m-dropdown--skin-light m-dropdown--large m-dropdown--arrow m-dropdown--align-right m-dropdown--align-push m-dropdown--mobile-full-width m-dropdown--skin-light",
-                    attrs: { "m-dropdown-toggle": "click" }
-                  },
-                  [
-                    _c(
-                      "a",
-                      {
-                        staticClass: "m-nav__link m-dropdown__toggle",
-                        attrs: { href: "#" }
-                      },
-                      [
-                        _c("span", {
-                          staticClass:
-                            "m-nav__link-badge m-badge m-badge--dot m-badge--info m--hide"
-                        }),
-                        _vm._v(" "),
-                        _c("span", { staticClass: "m-nav__link-icon" }, [
-                          _c(
-                            "span",
-                            { staticClass: "m-nav__link-icon-wrapper" },
-                            [_c("i", { staticClass: "flaticon-share" })]
-                          )
-                        ])
-                      ]
-                    ),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "m-dropdown__wrapper" }, [
-                      _c("span", {
-                        staticClass:
-                          "m-dropdown__arrow m-dropdown__arrow--right m-dropdown__arrow--adjust"
-                      }),
-                      _vm._v(" "),
-                      _c("div", { staticClass: "m-dropdown__inner" }, [
-                        _c(
-                          "div",
-                          { staticClass: "m-dropdown__header m--align-center" },
-                          [
-                            _c(
-                              "span",
-                              { staticClass: "m-dropdown__header-title" },
-                              [_vm._v("Quick Actions")]
-                            ),
-                            _vm._v(" "),
-                            _c(
-                              "span",
-                              { staticClass: "m-dropdown__header-subtitle" },
-                              [_vm._v("Shortcuts")]
-                            )
-                          ]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "div",
-                          {
-                            staticClass:
-                              "m-dropdown__body m-dropdown__body--paddingless"
-                          },
-                          [
-                            _c("div", { staticClass: "m-dropdown__content" }, [
-                              _c(
-                                "div",
-                                {
-                                  staticClass: "m-scrollable",
-                                  attrs: {
-                                    "data-scrollable": "false",
-                                    "data-height": "380",
-                                    "data-mobile-height": "200"
-                                  }
-                                },
-                                [
-                                  _c(
-                                    "div",
-                                    {
-                                      staticClass:
-                                        "m-nav-grid m-nav-grid--skin-light"
-                                    },
-                                    [
-                                      _c(
-                                        "div",
-                                        { staticClass: "m-nav-grid__row" },
-                                        [
-                                          _c(
-                                            "a",
-                                            {
-                                              staticClass: "m-nav-grid__item",
-                                              attrs: { href: "#" }
-                                            },
-                                            [
-                                              _c("i", {
-                                                staticClass:
-                                                  "m-nav-grid__icon flaticon-file"
-                                              }),
-                                              _vm._v(" "),
-                                              _c(
-                                                "span",
-                                                {
-                                                  staticClass:
-                                                    "m-nav-grid__text"
-                                                },
-                                                [_vm._v("Generate Report")]
-                                              )
-                                            ]
-                                          ),
-                                          _vm._v(" "),
-                                          _c(
-                                            "a",
-                                            {
-                                              staticClass: "m-nav-grid__item",
-                                              attrs: { href: "#" }
-                                            },
-                                            [
-                                              _c("i", {
-                                                staticClass:
-                                                  "m-nav-grid__icon flaticon-time"
-                                              }),
-                                              _vm._v(" "),
-                                              _c(
-                                                "span",
-                                                {
-                                                  staticClass:
-                                                    "m-nav-grid__text"
-                                                },
-                                                [_vm._v("Add New Event")]
-                                              )
-                                            ]
+                                            [_vm._v("pending")]
                                           )
                                         ]
                                       ),
                                       _vm._v(" "),
                                       _c(
-                                        "div",
-                                        { staticClass: "m-nav-grid__row" },
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("14 mins")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass: "m-list-timeline__badge"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__text"
+                                        },
+                                        [_vm._v("New invoice received")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("20 mins")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass: "m-list-timeline__badge"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__text"
+                                        },
                                         [
+                                          _vm._v("DB overloaded 80% "),
                                           _c(
-                                            "a",
+                                            "span",
                                             {
-                                              staticClass: "m-nav-grid__item",
-                                              attrs: { href: "#" }
+                                              staticClass:
+                                                "m-badge m-badge--info m-badge--wide"
                                             },
-                                            [
-                                              _c("i", {
-                                                staticClass:
-                                                  "m-nav-grid__icon flaticon-folder"
-                                              }),
-                                              _vm._v(" "),
-                                              _c(
-                                                "span",
-                                                {
-                                                  staticClass:
-                                                    "m-nav-grid__text"
-                                                },
-                                                [_vm._v("Create New Task")]
-                                              )
-                                            ]
-                                          ),
-                                          _vm._v(" "),
-                                          _c(
-                                            "a",
-                                            {
-                                              staticClass: "m-nav-grid__item",
-                                              attrs: { href: "#" }
-                                            },
-                                            [
-                                              _c("i", {
-                                                staticClass:
-                                                  "m-nav-grid__icon flaticon-clipboard"
-                                              }),
-                                              _vm._v(" "),
-                                              _c(
-                                                "span",
-                                                {
-                                                  staticClass:
-                                                    "m-nav-grid__text"
-                                                },
-                                                [_vm._v("Completed Tasks")]
-                                              )
-                                            ]
+                                            [_vm._v("settled")]
                                           )
                                         ]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("1 hr")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass: "m-list-timeline__badge"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__text"
+                                        },
+                                        [
+                                          _vm._v("System error - "),
+                                          _c(
+                                            "a",
+                                            {
+                                              staticClass: "m-link",
+                                              attrs: { href: "#" }
+                                            },
+                                            [_vm._v("Check")]
+                                          )
+                                        ]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("2 hrs")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    {
+                                      staticClass:
+                                        "m-list-timeline__item m-list-timeline__item--read"
+                                    },
+                                    [
+                                      _c("span", {
+                                        staticClass: "m-list-timeline__badge"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__text",
+                                          attrs: { href: "" }
+                                        },
+                                        [
+                                          _vm._v("New order received "),
+                                          _c(
+                                            "span",
+                                            {
+                                              staticClass:
+                                                "m-badge m-badge--danger m-badge--wide"
+                                            },
+                                            [_vm._v("urgent")]
+                                          )
+                                        ]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("7 hrs")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    {
+                                      staticClass:
+                                        "m-list-timeline__item m-list-timeline__item--read"
+                                    },
+                                    [
+                                      _c("span", {
+                                        staticClass: "m-list-timeline__badge"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__text"
+                                        },
+                                        [_vm._v("Production server down")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("3 hrs")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass: "m-list-timeline__badge"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__text"
+                                        },
+                                        [_vm._v("Production server up")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("5 hrs")]
                                       )
                                     ]
                                   )
                                 ]
                               )
-                            ])
-                          ]
-                        )
-                      ])
-                    ])
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "li",
-                  {
-                    staticClass:
-                      "m-nav__item m-dropdown m-dropdown--medium m-dropdown--arrow  m-dropdown--align-right m-dropdown--mobile-full-width m-dropdown--skin-light",
-                    attrs: { "m-dropdown-toggle": "click" }
-                  },
-                  [
-                    _c(
-                      "a",
-                      {
-                        staticClass: "m-nav__link m-dropdown__toggle",
-                        attrs: { href: "#" }
-                      },
-                      [
-                        _c("span", { staticClass: "m-topbar__userpic" }, [
-                          _c("img", {
-                            staticClass:
-                              "m--img-rounded m--marginless m--img-centered",
-                            attrs: {
-                              src: "assets/app/media/img/users/user4.jpg",
-                              alt: ""
-                            }
-                          })
-                        ]),
-                        _vm._v(" "),
-                        _c(
-                          "span",
-                          {
-                            staticClass:
-                              "m-nav__link-icon m-topbar__usericon  m--hide"
-                          },
-                          [
+                            ]
+                          )
+                        ]
+                      )
+                    ]
+                  ),
+                  _vm._v(" "),
+                  _c(
+                    "div",
+                    {
+                      staticClass: "tab-pane",
+                      attrs: {
+                        id: "topbar_notifications_events",
+                        role: "tabpanel"
+                      }
+                    },
+                    [
+                      _c(
+                        "div",
+                        {
+                          staticClass: "m-scrollable",
+                          attrs: {
+                            "data-scrollable": "true",
+                            "data-height": "250",
+                            "data-mobile-height": "200"
+                          }
+                        },
+                        [
+                          _c(
+                            "div",
+                            {
+                              staticClass:
+                                "m-list-timeline m-list-timeline--skin-light"
+                            },
+                            [
+                              _c(
+                                "div",
+                                { staticClass: "m-list-timeline__items" },
+                                [
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass:
+                                          "m-list-timeline__badge m-list-timeline__badge--state1-success"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "a",
+                                        {
+                                          staticClass: "m-list-timeline__text",
+                                          attrs: { href: "" }
+                                        },
+                                        [_vm._v("New order received")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("Just now")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass:
+                                          "m-list-timeline__badge m-list-timeline__badge--state1-danger"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "a",
+                                        {
+                                          staticClass: "m-list-timeline__text",
+                                          attrs: { href: "" }
+                                        },
+                                        [_vm._v("New invoice received")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("20 mins")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass:
+                                          "m-list-timeline__badge m-list-timeline__badge--state1-success"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "a",
+                                        {
+                                          staticClass: "m-list-timeline__text",
+                                          attrs: { href: "" }
+                                        },
+                                        [_vm._v("Production server up")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("5 hrs")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass:
+                                          "m-list-timeline__badge m-list-timeline__badge--state1-info"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "a",
+                                        {
+                                          staticClass: "m-list-timeline__text",
+                                          attrs: { href: "" }
+                                        },
+                                        [_vm._v("New order received")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("7 hrs")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass:
+                                          "m-list-timeline__badge m-list-timeline__badge--state1-info"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "a",
+                                        {
+                                          staticClass: "m-list-timeline__text",
+                                          attrs: { href: "" }
+                                        },
+                                        [_vm._v("System shutdown")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("11 mins")]
+                                      )
+                                    ]
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "div",
+                                    { staticClass: "m-list-timeline__item" },
+                                    [
+                                      _c("span", {
+                                        staticClass:
+                                          "m-list-timeline__badge m-list-timeline__badge--state1-info"
+                                      }),
+                                      _vm._v(" "),
+                                      _c(
+                                        "a",
+                                        {
+                                          staticClass: "m-list-timeline__text",
+                                          attrs: { href: "" }
+                                        },
+                                        [_vm._v("Production server down")]
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "span",
+                                        {
+                                          staticClass: "m-list-timeline__time"
+                                        },
+                                        [_vm._v("3 hrs")]
+                                      )
+                                    ]
+                                  )
+                                ]
+                              )
+                            ]
+                          )
+                        ]
+                      )
+                    ]
+                  ),
+                  _vm._v(" "),
+                  _c(
+                    "div",
+                    {
+                      staticClass: "tab-pane",
+                      attrs: {
+                        id: "topbar_notifications_logs",
+                        role: "tabpanel"
+                      }
+                    },
+                    [
+                      _c(
+                        "div",
+                        {
+                          staticClass: "m-stack m-stack--ver m-stack--general",
+                          staticStyle: { "min-height": "180px" }
+                        },
+                        [
+                          _c(
+                            "div",
+                            {
+                              staticClass:
+                                "m-stack__item m-stack__item--center m-stack__item--middle"
+                            },
+                            [
+                              _c("span", {}, [
+                                _vm._v("All caught up!"),
+                                _c("br"),
+                                _vm._v("No new logs.")
+                              ])
+                            ]
+                          )
+                        ]
+                      )
+                    ]
+                  )
+                ])
+              ])
+            ])
+          ])
+        ])
+      ]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "li",
+      {
+        staticClass:
+          "m-nav__item m-nav__item--danger m-dropdown m-dropdown--skin-light m-dropdown--large m-dropdown--arrow m-dropdown--align-right m-dropdown--align-push m-dropdown--mobile-full-width m-dropdown--skin-light",
+        attrs: { "m-dropdown-toggle": "click" }
+      },
+      [
+        _c(
+          "a",
+          {
+            staticClass: "m-nav__link m-dropdown__toggle",
+            attrs: { href: "#" }
+          },
+          [
+            _c("span", {
+              staticClass:
+                "m-nav__link-badge m-badge m-badge--dot m-badge--info m--hide"
+            }),
+            _vm._v(" "),
+            _c("span", { staticClass: "m-nav__link-icon" }, [
+              _c("span", { staticClass: "m-nav__link-icon-wrapper" }, [
+                _c("i", { staticClass: "flaticon-share" })
+              ])
+            ])
+          ]
+        ),
+        _vm._v(" "),
+        _c("div", { staticClass: "m-dropdown__wrapper" }, [
+          _c("span", {
+            staticClass:
+              "m-dropdown__arrow m-dropdown__arrow--right m-dropdown__arrow--adjust"
+          }),
+          _vm._v(" "),
+          _c("div", { staticClass: "m-dropdown__inner" }, [
+            _c("div", { staticClass: "m-dropdown__header m--align-center" }, [
+              _c("span", { staticClass: "m-dropdown__header-title" }, [
+                _vm._v("Quick Actions")
+              ]),
+              _vm._v(" "),
+              _c("span", { staticClass: "m-dropdown__header-subtitle" }, [
+                _vm._v("Shortcuts")
+              ])
+            ]),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "m-dropdown__body m-dropdown__body--paddingless" },
+              [
+                _c("div", { staticClass: "m-dropdown__content" }, [
+                  _c(
+                    "div",
+                    {
+                      staticClass: "m-scrollable",
+                      attrs: {
+                        "data-scrollable": "false",
+                        "data-height": "380",
+                        "data-mobile-height": "200"
+                      }
+                    },
+                    [
+                      _c(
+                        "div",
+                        { staticClass: "m-nav-grid m-nav-grid--skin-light" },
+                        [
+                          _c("div", { staticClass: "m-nav-grid__row" }, [
                             _c(
-                              "span",
-                              { staticClass: "m-nav__link-icon-wrapper" },
-                              [_c("i", { staticClass: "flaticon-user-ok" })]
-                            )
-                          ]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "span",
-                          { staticClass: "m-topbar__username m--hide" },
-                          [_vm._v("Mark")]
-                        )
-                      ]
-                    ),
-                    _vm._v(" "),
-                    _c("div", { staticClass: "m-dropdown__wrapper" }, [
-                      _c("span", {
-                        staticClass:
-                          "m-dropdown__arrow m-dropdown__arrow--right m-dropdown__arrow--adjust"
-                      }),
-                      _vm._v(" "),
-                      _c("div", { staticClass: "m-dropdown__inner" }, [
-                        _c(
-                          "div",
-                          { staticClass: "m-dropdown__header m--align-center" },
-                          [
-                            _c(
-                              "div",
+                              "a",
                               {
-                                staticClass:
-                                  "m-card-user m-card-user--skin-light"
+                                staticClass: "m-nav-grid__item",
+                                attrs: { href: "#" }
                               },
                               [
-                                _c("div", { staticClass: "m-card-user__pic" }, [
-                                  _c("img", {
-                                    staticClass: "m--img-rounded m--marginless",
-                                    attrs: {
-                                      src:
-                                        "assets/app/media/img/users/user4.jpg",
-                                      alt: ""
-                                    }
-                                  })
-                                ]),
+                                _c("i", {
+                                  staticClass: "m-nav-grid__icon flaticon-file"
+                                }),
                                 _vm._v(" "),
                                 _c(
-                                  "div",
-                                  { staticClass: "m-card-user__details" },
-                                  [
-                                    _c(
-                                      "span",
-                                      {
-                                        staticClass:
-                                          "m-card-user__name m--font-weight-500"
-                                      },
-                                      [_vm._v("Mark Andre")]
-                                    ),
-                                    _vm._v(" "),
-                                    _c(
-                                      "a",
-                                      {
-                                        staticClass:
-                                          "m-card-user__email m--font-weight-300 m-link",
-                                        attrs: { href: "" }
-                                      },
-                                      [_vm._v("mark.andre@gmail.com")]
-                                    )
-                                  ]
+                                  "span",
+                                  { staticClass: "m-nav-grid__text" },
+                                  [_vm._v("Generate Report")]
+                                )
+                              ]
+                            ),
+                            _vm._v(" "),
+                            _c(
+                              "a",
+                              {
+                                staticClass: "m-nav-grid__item",
+                                attrs: { href: "#" }
+                              },
+                              [
+                                _c("i", {
+                                  staticClass: "m-nav-grid__icon flaticon-time"
+                                }),
+                                _vm._v(" "),
+                                _c(
+                                  "span",
+                                  { staticClass: "m-nav-grid__text" },
+                                  [_vm._v("Add New Event")]
                                 )
                               ]
                             )
-                          ]
-                        ),
-                        _vm._v(" "),
-                        _c("div", { staticClass: "m-dropdown__body" }, [
-                          _c("div", { staticClass: "m-dropdown__content" }, [
+                          ]),
+                          _vm._v(" "),
+                          _c("div", { staticClass: "m-nav-grid__row" }, [
                             _c(
-                              "ul",
-                              { staticClass: "m-nav m-nav--skin-light" },
+                              "a",
+                              {
+                                staticClass: "m-nav-grid__item",
+                                attrs: { href: "#" }
+                              },
                               [
+                                _c("i", {
+                                  staticClass:
+                                    "m-nav-grid__icon flaticon-folder"
+                                }),
+                                _vm._v(" "),
                                 _c(
-                                  "li",
-                                  { staticClass: "m-nav__section m--hide" },
-                                  [
-                                    _c(
-                                      "span",
-                                      { staticClass: "m-nav__section-text" },
-                                      [_vm._v("Section")]
-                                    )
-                                  ]
-                                ),
-                                _vm._v(" "),
-                                _c("li", { staticClass: "m-nav__item" }, [
-                                  _c(
-                                    "a",
-                                    {
-                                      staticClass: "m-nav__link",
-                                      attrs: { href: "profile.html" }
-                                    },
-                                    [
-                                      _c("i", {
-                                        staticClass:
-                                          "m-nav__link-icon flaticon-profile-1"
-                                      }),
-                                      _vm._v(" "),
-                                      _c(
-                                        "span",
-                                        { staticClass: "m-nav__link-title" },
-                                        [
-                                          _c(
-                                            "span",
-                                            { staticClass: "m-nav__link-wrap" },
-                                            [
-                                              _c(
-                                                "span",
-                                                {
-                                                  staticClass:
-                                                    "m-nav__link-text"
-                                                },
-                                                [_vm._v("My Profile")]
-                                              ),
-                                              _vm._v(" "),
-                                              _c(
-                                                "span",
-                                                {
-                                                  staticClass:
-                                                    "m-nav__link-badge"
-                                                },
-                                                [
-                                                  _c(
-                                                    "span",
-                                                    {
-                                                      staticClass:
-                                                        "m-badge m-badge--success"
-                                                    },
-                                                    [_vm._v("2")]
-                                                  )
-                                                ]
-                                              )
-                                            ]
-                                          )
-                                        ]
-                                      )
-                                    ]
-                                  )
-                                ]),
-                                _vm._v(" "),
-                                _c("li", { staticClass: "m-nav__item" }, [
-                                  _c(
-                                    "a",
-                                    {
-                                      staticClass: "m-nav__link",
-                                      attrs: { href: "profile.html" }
-                                    },
-                                    [
-                                      _c("i", {
-                                        staticClass:
-                                          "m-nav__link-icon flaticon-share"
-                                      }),
-                                      _vm._v(" "),
-                                      _c(
-                                        "span",
-                                        { staticClass: "m-nav__link-text" },
-                                        [_vm._v("Activity")]
-                                      )
-                                    ]
-                                  )
-                                ]),
-                                _vm._v(" "),
-                                _c("li", { staticClass: "m-nav__item" }, [
-                                  _c(
-                                    "a",
-                                    {
-                                      staticClass: "m-nav__link",
-                                      attrs: { href: "profile.html" }
-                                    },
-                                    [
-                                      _c("i", {
-                                        staticClass:
-                                          "m-nav__link-icon flaticon-chat-1"
-                                      }),
-                                      _vm._v(" "),
-                                      _c(
-                                        "span",
-                                        { staticClass: "m-nav__link-text" },
-                                        [_vm._v("Messages")]
-                                      )
-                                    ]
-                                  )
-                                ]),
-                                _vm._v(" "),
-                                _c("li", {
+                                  "span",
+                                  { staticClass: "m-nav-grid__text" },
+                                  [_vm._v("Create New Task")]
+                                )
+                              ]
+                            ),
+                            _vm._v(" "),
+                            _c(
+                              "a",
+                              {
+                                staticClass: "m-nav-grid__item",
+                                attrs: { href: "#" }
+                              },
+                              [
+                                _c("i", {
                                   staticClass:
-                                    "m-nav__separator m-nav__separator--fit"
+                                    "m-nav-grid__icon flaticon-clipboard"
                                 }),
                                 _vm._v(" "),
-                                _c("li", { staticClass: "m-nav__item" }, [
-                                  _c(
-                                    "a",
-                                    {
-                                      staticClass: "m-nav__link",
-                                      attrs: { href: "profile.html" }
-                                    },
-                                    [
-                                      _c("i", {
-                                        staticClass:
-                                          "m-nav__link-icon flaticon-info"
-                                      }),
-                                      _vm._v(" "),
-                                      _c(
-                                        "span",
-                                        { staticClass: "m-nav__link-text" },
-                                        [_vm._v("FAQ")]
-                                      )
-                                    ]
-                                  )
-                                ]),
-                                _vm._v(" "),
-                                _c("li", { staticClass: "m-nav__item" }, [
-                                  _c(
-                                    "a",
-                                    {
-                                      staticClass: "m-nav__link",
-                                      attrs: { href: "profile.html" }
-                                    },
-                                    [
-                                      _c("i", {
-                                        staticClass:
-                                          "m-nav__link-icon flaticon-lifebuoy"
-                                      }),
-                                      _vm._v(" "),
-                                      _c(
-                                        "span",
-                                        { staticClass: "m-nav__link-text" },
-                                        [_vm._v("Support")]
-                                      )
-                                    ]
-                                  )
-                                ]),
-                                _vm._v(" "),
-                                _c("li", {
-                                  staticClass:
-                                    "m-nav__separator m-nav__separator--fit"
-                                }),
-                                _vm._v(" "),
-                                _c("li", { staticClass: "m-nav__item" }, [
-                                  _c(
-                                    "a",
-                                    {
-                                      staticClass:
-                                        "btn m-btn--pill    btn-secondary m-btn m-btn--custom m-btn--label-brand m-btn--bolder",
-                                      attrs: {
-                                        href: "snippets/pages/user/login-1.html"
-                                      }
-                                    },
-                                    [_vm._v("Logout")]
-                                  )
-                                ])
+                                _c(
+                                  "span",
+                                  { staticClass: "m-nav-grid__text" },
+                                  [_vm._v("Completed Tasks")]
+                                )
                               ]
                             )
                           ])
-                        ])
-                      ])
-                    ])
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "li",
-                  {
-                    staticClass:
-                      "m-nav__item m-nav__item--info m-nav__item--qs",
-                    attrs: { id: "m_quick_sidebar_toggle" }
-                  },
-                  [
-                    _c(
-                      "a",
-                      {
-                        staticClass: "m-nav__link m-dropdown__toggle",
-                        attrs: { href: "#" }
-                      },
-                      [
-                        _c(
-                          "span",
-                          {
-                            staticClass: "m-nav__link-icon m-nav__link-icon-alt"
-                          },
-                          [
-                            _c(
-                              "span",
-                              { staticClass: "m-nav__link-icon-wrapper" },
-                              [_c("i", { staticClass: "flaticon-grid-menu" })]
-                            )
-                          ]
-                        )
-                      ]
-                    )
-                  ]
-                )
+                        ]
+                      )
+                    ]
+                  )
+                ])
+              ]
+            )
+          ])
+        ])
+      ]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "a",
+      { staticClass: "m-nav__link m-dropdown__toggle", attrs: { href: "#" } },
+      [
+        _c("span", { staticClass: "m-topbar__userpic" }, [
+          _c("img", {
+            staticClass: "m--img-rounded m--marginless m--img-centered",
+            attrs: { src: "assets/app/media/img/users/user4.jpg", alt: "" }
+          })
+        ]),
+        _vm._v(" "),
+        _c(
+          "span",
+          { staticClass: "m-nav__link-icon m-topbar__usericon  m--hide" },
+          [
+            _c("span", { staticClass: "m-nav__link-icon-wrapper" }, [
+              _c("i", { staticClass: "flaticon-user-ok" })
+            ])
+          ]
+        ),
+        _vm._v(" "),
+        _c("span", { staticClass: "m-topbar__username m--hide" }, [
+          _vm._v("Mark")
+        ])
+      ]
+    )
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("div", { staticClass: "m-dropdown__header m--align-center" }, [
+      _c("div", { staticClass: "m-card-user m-card-user--skin-light" }, [
+        _c("div", { staticClass: "m-card-user__pic" }, [
+          _c("img", {
+            staticClass: "m--img-rounded m--marginless",
+            attrs: { src: "assets/app/media/img/users/user4.jpg", alt: "" }
+          })
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "m-card-user__details" }, [
+          _c("span", { staticClass: "m-card-user__name m--font-weight-500" }, [
+            _vm._v("Mark Andre")
+          ]),
+          _vm._v(" "),
+          _c(
+            "a",
+            {
+              staticClass: "m-card-user__email m--font-weight-300 m-link",
+              attrs: { href: "" }
+            },
+            [_vm._v("mark.andre@gmail.com")]
+          )
+        ])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("li", { staticClass: "m-nav__section m--hide" }, [
+      _c("span", { staticClass: "m-nav__section-text" }, [_vm._v("Section")])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("li", { staticClass: "m-nav__item" }, [
+      _c("a", { staticClass: "m-nav__link", attrs: { href: "profile.html" } }, [
+        _c("i", { staticClass: "m-nav__link-icon flaticon-profile-1" }),
+        _vm._v(" "),
+        _c("span", { staticClass: "m-nav__link-title" }, [
+          _c("span", { staticClass: "m-nav__link-wrap" }, [
+            _c("span", { staticClass: "m-nav__link-text" }, [
+              _vm._v("My Profile")
+            ]),
+            _vm._v(" "),
+            _c("span", { staticClass: "m-nav__link-badge" }, [
+              _c("span", { staticClass: "m-badge m-badge--success" }, [
+                _vm._v("2")
               ])
             ])
+          ])
+        ])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("li", { staticClass: "m-nav__item" }, [
+      _c("a", { staticClass: "m-nav__link", attrs: { href: "profile.html" } }, [
+        _c("i", { staticClass: "m-nav__link-icon flaticon-share" }),
+        _vm._v(" "),
+        _c("span", { staticClass: "m-nav__link-text" }, [_vm._v("Activity")])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("li", { staticClass: "m-nav__item" }, [
+      _c("a", { staticClass: "m-nav__link", attrs: { href: "profile.html" } }, [
+        _c("i", { staticClass: "m-nav__link-icon flaticon-chat-1" }),
+        _vm._v(" "),
+        _c("span", { staticClass: "m-nav__link-text" }, [_vm._v("Messages")])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("li", { staticClass: "m-nav__item" }, [
+      _c("a", { staticClass: "m-nav__link", attrs: { href: "profile.html" } }, [
+        _c("i", { staticClass: "m-nav__link-icon flaticon-info" }),
+        _vm._v(" "),
+        _c("span", { staticClass: "m-nav__link-text" }, [_vm._v("FAQ")])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c("li", { staticClass: "m-nav__item" }, [
+      _c("a", { staticClass: "m-nav__link", attrs: { href: "profile.html" } }, [
+        _c("i", { staticClass: "m-nav__link-icon flaticon-lifebuoy" }),
+        _vm._v(" "),
+        _c("span", { staticClass: "m-nav__link-text" }, [_vm._v("Support")])
+      ])
+    ])
+  },
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "li",
+      {
+        staticClass: "m-nav__item m-nav__item--info m-nav__item--qs",
+        attrs: { id: "m_quick_sidebar_toggle" }
+      },
+      [
+        _c(
+          "a",
+          {
+            staticClass: "m-nav__link m-dropdown__toggle",
+            attrs: { href: "#" }
+          },
+          [
+            _c(
+              "span",
+              { staticClass: "m-nav__link-icon m-nav__link-icon-alt" },
+              [
+                _c("span", { staticClass: "m-nav__link-icon-wrapper" }, [
+                  _c("i", { staticClass: "flaticon-grid-menu" })
+                ])
+              ]
+            )
           ]
         )
       ]
@@ -23346,6 +26304,17 @@ module.exports = g;
 
 /***/ }),
 
+/***/ "./public/assets/app/media/img/logos/logo-4.png":
+/*!******************************************************!*\
+  !*** ./public/assets/app/media/img/logos/logo-4.png ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = "/images/logo-4.png?7577cef3646d0d4aa3a92caff7e527f0";
+
+/***/ }),
+
 /***/ "./resources/js/admin/app.js":
 /*!***********************************!*\
   !*** ./resources/js/admin/app.js ***!
@@ -23397,6 +26366,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _views_partials_header_header_top_MHeader__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./views/partials/header/header-top/MHeader */ "./resources/js/admin/views/partials/header/header-top/MHeader.vue");
 /* harmony import */ var _views_partials_header_header_top_HorMenu__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./views/partials/header/header-top/HorMenu */ "./resources/js/admin/views/partials/header/header-top/HorMenu.vue");
 /* harmony import */ var _views_partials_Lang__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./views/partials/Lang */ "./resources/js/admin/views/partials/Lang.vue");
+/* harmony import */ var _views_partials_header_LogIn__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./views/partials/header/LogIn */ "./resources/js/admin/views/partials/header/LogIn.vue");
+/* harmony import */ var _views_partials_header_SignUp__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./views/partials/header/SignUp */ "./resources/js/admin/views/partials/header/SignUp.vue");
+
+
 
 
 
@@ -23424,6 +26397,8 @@ vue__WEBPACK_IMPORTED_MODULE_0___default.a.component('topbar', _views_partials_h
 vue__WEBPACK_IMPORTED_MODULE_0___default.a.component('mHeader', _views_partials_header_header_top_MHeader__WEBPACK_IMPORTED_MODULE_11__["default"]);
 vue__WEBPACK_IMPORTED_MODULE_0___default.a.component('horMenu', _views_partials_header_header_top_HorMenu__WEBPACK_IMPORTED_MODULE_12__["default"]);
 vue__WEBPACK_IMPORTED_MODULE_0___default.a.component('lang', _views_partials_Lang__WEBPACK_IMPORTED_MODULE_13__["default"]);
+vue__WEBPACK_IMPORTED_MODULE_0___default.a.component('login', _views_partials_header_LogIn__WEBPACK_IMPORTED_MODULE_14__["default"]);
+vue__WEBPACK_IMPORTED_MODULE_0___default.a.component('SignUp', _views_partials_header_SignUp__WEBPACK_IMPORTED_MODULE_15__["default"]);
 
 /***/ }),
 
@@ -23465,11 +26440,24 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _views_partials_Dashboard__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../views/partials/Dashboard */ "./resources/js/admin/views/partials/Dashboard.vue");
 /* harmony import */ var _views_partials_Dashboard2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../views/partials/Dashboard2 */ "./resources/js/admin/views/partials/Dashboard2.vue");
 /* harmony import */ var _views_partials_Customer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../views/partials/Customer */ "./resources/js/admin/views/partials/Customer.vue");
+/* harmony import */ var _views_partials_header_LogIn__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../views/partials/header/LogIn */ "./resources/js/admin/views/partials/header/LogIn.vue");
+/* harmony import */ var _views_Layout__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../views/Layout */ "./resources/js/admin/views/Layout.vue");
 
 
 
-/* harmony default export */ __webpack_exports__["default"] = ([{
-  path: "/",
+
+
+/* harmony default export */ __webpack_exports__["default"] = ([//    { path: "/layout",
+//     redirect: "/Layout"
+//         },
+{
+  path: "/LogIn",
+  component: _views_partials_header_LogIn__WEBPACK_IMPORTED_MODULE_3__["default"]
+}, {
+  path: "/Layout",
+  component: _views_Layout__WEBPACK_IMPORTED_MODULE_4__["default"]
+}, {
+  path: "/Dashboard",
   component: _views_partials_Dashboard__WEBPACK_IMPORTED_MODULE_0__["default"]
 }, {
   path: "/Dashboard2",
@@ -24402,6 +27390,144 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_SubHeader_vue_vue_type_template_id_4be48f8f___WEBPACK_IMPORTED_MODULE_0__["render"]; });
 
 /* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_SubHeader_vue_vue_type_template_id_4be48f8f___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
+/***/ "./resources/js/admin/views/partials/header/LogIn.vue":
+/*!************************************************************!*\
+  !*** ./resources/js/admin/views/partials/header/LogIn.vue ***!
+  \************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _LogIn_vue_vue_type_template_id_2b8434d6___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./LogIn.vue?vue&type=template&id=2b8434d6& */ "./resources/js/admin/views/partials/header/LogIn.vue?vue&type=template&id=2b8434d6&");
+/* harmony import */ var _LogIn_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./LogIn.vue?vue&type=script&lang=js& */ "./resources/js/admin/views/partials/header/LogIn.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../../../../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+  _LogIn_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _LogIn_vue_vue_type_template_id_2b8434d6___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _LogIn_vue_vue_type_template_id_2b8434d6___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "resources/js/admin/views/partials/header/LogIn.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./resources/js/admin/views/partials/header/LogIn.vue?vue&type=script&lang=js&":
+/*!*************************************************************************************!*\
+  !*** ./resources/js/admin/views/partials/header/LogIn.vue?vue&type=script&lang=js& ***!
+  \*************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_LogIn_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../../../../node_modules/babel-loader/lib??ref--4-0!../../../../../../node_modules/vue-loader/lib??vue-loader-options!./LogIn.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/LogIn.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_LogIn_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./resources/js/admin/views/partials/header/LogIn.vue?vue&type=template&id=2b8434d6&":
+/*!*******************************************************************************************!*\
+  !*** ./resources/js/admin/views/partials/header/LogIn.vue?vue&type=template&id=2b8434d6& ***!
+  \*******************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_LogIn_vue_vue_type_template_id_2b8434d6___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../../../../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../../../../node_modules/vue-loader/lib??vue-loader-options!./LogIn.vue?vue&type=template&id=2b8434d6& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/LogIn.vue?vue&type=template&id=2b8434d6&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_LogIn_vue_vue_type_template_id_2b8434d6___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_LogIn_vue_vue_type_template_id_2b8434d6___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+
+
+
+/***/ }),
+
+/***/ "./resources/js/admin/views/partials/header/SignUp.vue":
+/*!*************************************************************!*\
+  !*** ./resources/js/admin/views/partials/header/SignUp.vue ***!
+  \*************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _SignUp_vue_vue_type_template_id_10050e5c___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./SignUp.vue?vue&type=template&id=10050e5c& */ "./resources/js/admin/views/partials/header/SignUp.vue?vue&type=template&id=10050e5c&");
+/* harmony import */ var _SignUp_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./SignUp.vue?vue&type=script&lang=js& */ "./resources/js/admin/views/partials/header/SignUp.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../../../../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
+
+
+
+
+
+/* normalize component */
+
+var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
+  _SignUp_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _SignUp_vue_vue_type_template_id_10050e5c___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _SignUp_vue_vue_type_template_id_10050e5c___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  false,
+  null,
+  null,
+  null
+  
+)
+
+/* hot reload */
+if (false) { var api; }
+component.options.__file = "resources/js/admin/views/partials/header/SignUp.vue"
+/* harmony default export */ __webpack_exports__["default"] = (component.exports);
+
+/***/ }),
+
+/***/ "./resources/js/admin/views/partials/header/SignUp.vue?vue&type=script&lang=js&":
+/*!**************************************************************************************!*\
+  !*** ./resources/js/admin/views/partials/header/SignUp.vue?vue&type=script&lang=js& ***!
+  \**************************************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_SignUp_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../../../../node_modules/babel-loader/lib??ref--4-0!../../../../../../node_modules/vue-loader/lib??vue-loader-options!./SignUp.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/SignUp.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_SignUp_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+
+/***/ }),
+
+/***/ "./resources/js/admin/views/partials/header/SignUp.vue?vue&type=template&id=10050e5c&":
+/*!********************************************************************************************!*\
+  !*** ./resources/js/admin/views/partials/header/SignUp.vue?vue&type=template&id=10050e5c& ***!
+  \********************************************************************************************/
+/*! exports provided: render, staticRenderFns */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_SignUp_vue_vue_type_template_id_10050e5c___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../../../../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../../../../node_modules/vue-loader/lib??vue-loader-options!./SignUp.vue?vue&type=template&id=10050e5c& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/admin/views/partials/header/SignUp.vue?vue&type=template&id=10050e5c&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_SignUp_vue_vue_type_template_id_10050e5c___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_SignUp_vue_vue_type_template_id_10050e5c___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
 
 
 

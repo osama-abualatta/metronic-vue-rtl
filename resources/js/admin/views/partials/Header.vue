@@ -3,26 +3,31 @@
 					<div class="m-header__top">
 						<div class="m-container m-container--fluid m-container--full-height m-page__container">
 							<div class="m-stack m-stack--ver m-stack--desktop">
-	
+
 								<!-- begin::Brand -->
                                     <brand></brand>
 								<!-- end::Brand -->
-	
+
 								<!-- begin::Topbar -->
-                                <topbar></topbar>
-	
+                                <topbar @logoutHandle="logoutHandle"></topbar>
+
 								<!-- end::Topbar -->
 							</div>
 						</div>
 					</div>
                     <m-header></m-header>
 				</header>
-	
+
 </template>
 
 <script>
 export default {
+methods :{
+    logoutHandle(){
+        this.$emit('logoutHandle')
+    }
 
+}
 }
 </script>
 

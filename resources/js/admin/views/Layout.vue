@@ -1,6 +1,8 @@
 <template>
-   	<div >
+<div>
+   	<div v-if="log=='dashboard'" >
 			<!-- begin::Page loader -->
+            <!-- <router-link v-if="authenticated" to="/login"  @logoutHandle="logoutHandle" replace>Logout</router-link> -->
 
 	<loader></loader>
 
@@ -10,7 +12,7 @@
 			<div class="m-grid m-grid--hor m-grid--root m-page">
 
 				<!-- begin::Header -->
-		<app-header></app-header>
+		<app-header @logoutHandle="logoutHandle"></app-header>
 
 				<!-- end::Header -->
 
@@ -53,15 +55,64 @@
 			<qnav></qnav>
 			<!-- begin::Quick Nav -->
 
-	</div>
+
+
+
+   <!-- <router-view @authenticated="setAuthenticated" /> -->
+   </div>
+
+    <div v-else-if="log=='signup'">
+        <SignUp @cancelBtn="cancelBtn"></SignUp>
+        </div>
+  <div v-else>
+        <login @reg="register"
+         @signin="signin"
+        ></login>
+
+    </div>  </div>
 </template>
 
 <script>
 
     export default {
+data(){
+    return {
+        log:'login',
+       // up=false
 
+}
+},
+        // mounted() {
+        //     if(!this.authenticated) {
+        //         this.$router.replace( "login" );
+        //     }
+        // },
+    methods:{
+        signin(){
+        this.log='dashboard';
+        },
+        logoutHandle(){
+            this.log= 'login'
+            },
+             register(){
+            this.log='signup'
+        },
+        cancelBtn(){
+            this.log='login'
+        }
+        },
+
+        //  setAuthenticated(status) {
+        //         this.authenticated = status;
+        //     },
+        //     logout() {
+        //         this.authenticated = false;
+        //     }
 
     }
+
+
+
 </script>
 
 <style lang="scss" scoped>
