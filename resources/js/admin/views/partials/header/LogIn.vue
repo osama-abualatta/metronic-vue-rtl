@@ -144,7 +144,9 @@ export default {
       console.log(response);
             //   if(this.input.email != "" && this.input.password != "") {
             //        if(this.input.email == this.email && this.input.password == this.password) {
-                       this.$emit("signin", true);
+                     //  this.$emit("signin", true);
+
+        this.$router.push('/dashboard');
             //           //  this.$router.replace("layout");
             //         }
             //         else{
@@ -168,8 +170,7 @@ export default {
         //         }
      },
      reg(){
-         this.$emit('reg', true)
-         console.log('reg');
+           this.$router.push('/signup');
 
      }
  }

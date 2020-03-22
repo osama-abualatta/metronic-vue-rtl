@@ -299,8 +299,16 @@ disable :true
     },
  methods: {
      logoutHandle(){
-         this.$emit('logoutHandle')
+       //  this.$emit('logoutHandle')
+       //ما استخدمنا router-link
+       //لانه راوتر لنك بحول مباشر علي الصفحة
+       //لكن احنا بدنا عمل شغله قبل منحول وهي طلب السيرفر يعني الباك اند عشان نحكيلو المستخدم عمل تسجيل خروج
+       //بعدين بنحول بشكل يدوي علي الصفحة التالية باستخدام
+       //this.$router.push
 
+       //call the server here
+
+this.$router.push('/login');
      }
  }
 }

@@ -273,7 +273,7 @@ export default {
     },
     methods: {
         cancelBtn() {
-            this.$emit("cancelBtn");
+             this.$router.push('/login');
         },
         regSignUp() {
             axios

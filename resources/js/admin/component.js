@@ -14,7 +14,12 @@ import HorMenu from'./views/partials/header/header-top/HorMenu'
 import Lang from'./views/partials/Lang'
 import LogIn from'./views/partials/header/LogIn'
 import SignUp from'./views/partials/header/SignUp'
+////////////////////////////
+import DashboardContainer from'./views/partials/DashboardContainer'
 
+/////////////////////////////////////////////
+
+Vue.component('dashboard-container',DashboardContainer)
 Vue.component('layout',Layout)
 Vue.component('loader',Loader)
 Vue.component('appHeader',Header)

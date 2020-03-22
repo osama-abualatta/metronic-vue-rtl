@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en" >
+<html lang="en">
 
 	<!-- begin::Head -->
 	<head>
@@ -23,12 +23,11 @@
 		<!--end::Web font -->
 
 		<!--begin::Global Theme Styles -->
-    <link href="{{asset('/assets/vendors/base/vendors.bundle.css')}}" rel="stylesheet" type="text/css" />
-
+    <link href="{{asset('/assets/vendors/base/vendors.bundle.css')}}" rel="stylesheet" type="text/css"  id="vendors"/>
+    <link href="{{asset('/assets/vendors/base/vendors.bundle.rtl.css')}}" rel="stylesheet" type="text/css" id="vendors-rtl" />
 		<!--RTL version:<link href="assets/vendors/base/vendors.bundle.rtl.css" rel="stylesheet" type="text/css" />-->
-    <link href="{{asset('/assets/demo/demo10/base/style.bundle.css')}}" rel="stylesheet" type="text/css" />
-
-		<!--RTL version:<link href="assets/demo/demo10/base/style.bundle.rtl.css" rel="stylesheet" type="text/css" />-->
+   <link href="{{asset('/assets/demo/demo10/base/style.bundle.css')}}" rel="stylesheet" type="text/css" id="style" />
+   <link href="{{asset('/assets/demo/demo10/base/style.bundle.rtl.css')}}" rel="stylesheet" type="text/css"  id="style-rtl"/>
 
 		<!--end::Global Theme Styles -->
 
@@ -55,6 +54,7 @@
 <script src="{{asset('/assets/demo/demo10/base/scripts.bundle.js')}}" type="text/javascript"></script>
 <script src="{{asset('/assets/snippets/custom/pages/user/login6.js')}}" type="text/javascript"></script>
  <script src="{{asset('/assets/snippets/custom/pages/user/login.js')}}" type="text/javascript"></script>
+
 		<!--end::Global Theme Bundle -->
 
 

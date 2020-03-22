@@ -34,7 +34,7 @@
                 m-menu-link-redirect="1"
                 aria-haspopup="true"
               >
-                <router-link to="/Dashboard" class="m-menu__link "
+                <router-link to="/dashboard/Dashboard1" class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-support"></i
                   ><span class="m-menu__link-text"
                     >{{ $t('Dashboard1') }}</span
@@ -45,7 +45,7 @@
                 class="m-menu__item  m-menu__item--active "
                 aria-haspopup="true"
               >
-                <router-link to="/Dashboard2" class="m-menu__link "
+                <router-link to="/dashboard/Dashboard2" class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-file"></i
                   ><span class="m-menu__link-text">{{ $t('Dashboard2') }}</span>
                   </router-link >
@@ -77,7 +77,7 @@
                 m-menu-link-redirect="1"
                 aria-haspopup="true"
               >
-                <router-link to="/Customer" class="m-menu__link "
+                <router-link to="/dashboard/Customer" class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-settings-1"></i
                   ><span class="m-menu__link-text">{{ $t('customer')}}</span></router-link
                 >
