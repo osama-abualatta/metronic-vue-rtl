@@ -7,6 +7,7 @@
 						<div class="m-login__logo">
 							<a href="#">
 								<img src="../../../../../../public/assets/app/media/img/logos/logo-4.png">
+
 							</a>
 						</div>
 					</div>

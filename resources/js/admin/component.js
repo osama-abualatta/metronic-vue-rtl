@@ -3,6 +3,9 @@ import Layout from './views/Layout'
 import Loader from './views/partials/Loader'
 import Header from'./views/partials/Header'
 import SubHeader from'./views/partials/SubHeader'
+import DeleteUser from'./views/partials/DeleteUser'
+import Table from'./views/partials/Table'
+import Calender from './views/partials/Calender'
 import Footer from'./views/partials/Footer'
 import SideBar from'./views/partials/SideBar'
 import Nav from'./views/partials/Nav'
@@ -14,6 +17,7 @@ import HorMenu from'./views/partials/header/header-top/HorMenu'
 import Lang from'./views/partials/Lang'
 import LogIn from'./views/partials/header/LogIn'
 import SignUp from'./views/partials/header/SignUp'
+import UserDetails from './views/partials/UserDetails'
 ////////////////////////////
 import DashboardContainer from'./views/partials/DashboardContainer'
 
@@ -30,8 +34,12 @@ Vue.component('qnav',Nav)
 Vue.component('scrolltop',ScrollTop)
 Vue.component('brand',Brand)
 Vue.component('topbar',TopBar)
-Vue.component('mHeader',MHeader)
+Vue.component('m-header',MHeader)
 Vue.component('horMenu',HorMenu)
 Vue.component('lang',Lang)
 Vue.component('login',LogIn)
 Vue.component('SignUp',SignUp)
+Vue.component('t-table',Table)
+Vue.component('delete-user',DeleteUser)
+Vue.component('user-details',UserDetails)
+Vue.component('calender',Calender)
