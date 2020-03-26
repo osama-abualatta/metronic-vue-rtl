@@ -25,16 +25,13 @@
                     <!-- END: Subheader -->
                     <!-- begin content-->
                     <div class="m-content">
-                        <t-table
-                            ref="users_table"
-                            @deleteUser="deleteUser"
-                            @details="details"
-                        ></t-table>
+
                         <delete-user
                             @onUserDelete="handleUserDelete"
                             v-if="userdelete"
                         ></delete-user>
                         <user-details v-if="showUser"></user-details>
+
                         <router-view />
 
                     </div>
@@ -97,7 +94,7 @@ export default {
             this.selectedRow = row;
             //console.log('deleteUser,row');
            // console.log(row);
-            this.showUser = !this.showUser;
+            //this.showUser = !this.showUser;
         }
     }
 };

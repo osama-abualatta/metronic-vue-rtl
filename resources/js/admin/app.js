@@ -8,8 +8,10 @@ import 'vue-good-table/dist/vue-good-table.css'
 import VCalendar from 'v-calendar';
 
 
+
 Vue.use(VueGoodTablePlugin);
-Vue.use(VCalendar, {componentPrefix: 'vc' });
+Vue.use(VCalendar);
+
 Vue.config.productionTip = false;
 export const EventBus = new Vue();
 

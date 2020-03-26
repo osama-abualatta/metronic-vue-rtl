@@ -97,7 +97,8 @@ export default {
                     break;
 
                 case "btnDetails":
-                    this.$emit("details", params.row);
+                    this.$router.push('userdetails')
+                   // this.$emit("details", params.row);
                     //console.log("btndetails");
                     break;
             }

@@ -4,8 +4,7 @@ import Loader from './views/partials/Loader'
 import Header from'./views/partials/Header'
 import SubHeader from'./views/partials/SubHeader'
 import DeleteUser from'./views/partials/DeleteUser'
-import Table from'./views/partials/Table'
-import Calender from './views/partials/Calender'
+
 import Footer from'./views/partials/Footer'
 import SideBar from'./views/partials/SideBar'
 import Nav from'./views/partials/Nav'
@@ -22,6 +21,13 @@ import UserDetails from './views/partials/UserDetails'
 import DashboardContainer from'./views/partials/DashboardContainer'
 
 /////////////////////////////////////////////
+import Calendar from 'v-calendar/lib/components/calendar.umd'
+import DatePicker from 'v-calendar/lib/components/date-picker.umd'
+import VueCtkDateTimePicker from 'vue-ctk-date-time-picker';
+import Verte from 'verte';
+import 'verte/dist/verte.css';
+import 'vue-ctk-date-time-picker/dist/vue-ctk-date-time-picker.css';
+
 
 Vue.component('dashboard-container',DashboardContainer)
 Vue.component('layout',Layout)
@@ -39,7 +45,11 @@ Vue.component('horMenu',HorMenu)
 Vue.component('lang',Lang)
 Vue.component('login',LogIn)
 Vue.component('SignUp',SignUp)
-Vue.component('t-table',Table)
+
 Vue.component('delete-user',DeleteUser)
 Vue.component('user-details',UserDetails)
-Vue.component('calender',Calender)
+Vue.component('calendar', Calendar)
+Vue.component('date-picker', DatePicker)
+Vue.component('verte', Verte);
+Vue.component('VueCtkDateTimePicker', VueCtkDateTimePicker);
+

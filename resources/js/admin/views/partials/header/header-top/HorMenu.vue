@@ -16,14 +16,14 @@
           m-menu-submenu-toggle="tab"
           aria-haspopup="true"
         >
-          <a
-            href="javascript:;"
+          <router-link
+            to="/dashboard/dashboard"
             class="m-menu__link m-menu__toggle"
             title="Non functional dummy link"
             ><span class="m-menu__link-text">{{ $t('DASHBOARD') }}</span
             ><i class="m-menu__hor-arrow la la-angle-down"></i
             ><i class="m-menu__ver-arrow la la-angle-right"></i
-          ></a>
+          ></router-link>
           <div
             class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--left m-menu__submenu--tabs"
           >
@@ -34,21 +34,21 @@
                 m-menu-link-redirect="1"
                 aria-haspopup="true"
               >
-                <router-link to="/dashboard/Dashboard1" class="m-menu__link "
+                <a  class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-support"></i
                   ><span class="m-menu__link-text"
                     >{{ $t('Dashboard1') }}</span
-                  ></router-link
+                  ></a
                 >
               </li>
               <li
                 class="m-menu__item  m-menu__item--active "
                 aria-haspopup="true"
               >
-                <router-link to="/dashboard/Dashboard2" class="m-menu__link "
+                <a  class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-file"></i
                   ><span class="m-menu__link-text">{{ $t('Dashboard2') }}</span>
-                  </router-link >
+                  </a >
               </li>
             </ul>
           </div>
@@ -60,14 +60,14 @@
           m-menu-submenu-toggle="tab"
           aria-haspopup="true"
         >
-          <a
-
+          <router-link
+            to="/dashboard/customer"
             class="m-menu__link m-menu__toggle"
             title="Non functional dummy link"
             ><span class="m-menu__link-text">{{ $t('Customers')}}</span
             ><i class="m-menu__hor-arrow la la-angle-down"></i
             ><i class="m-menu__ver-arrow la la-angle-right"></i
-          ></a>
+          ></router-link>
 
           <div
             class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--left m-menu__submenu--tabs"
@@ -79,9 +79,9 @@
                 m-menu-link-redirect="1"
                 aria-haspopup="true"
               >
-                <router-link to="/dashboard/Customer" class="m-menu__link "
+                <a  class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-settings-1"></i
-                  ><span class="m-menu__link-text">{{ $t('customer')}}</span></router-link >
+                  ><span class="m-menu__link-text">{{ $t('customer')}}</span></a>
               </li>
             </ul>
           </div>
@@ -91,14 +91,14 @@
           m-menu-submenu-toggle="tab"
           aria-haspopup="true"
         >
-          <a
-
+          <router-link
+            to="/dashboard/table"
             class="m-menu__link m-menu__toggle"
             title="Non functional dummy link"
             ><span class="m-menu__link-text">{{ $t('DataTable')}}</span
             ><i class="m-menu__hor-arrow la la-angle-down"></i
             ><i class="m-menu__ver-arrow la la-angle-right"></i
-          ></a>
+          ></router-link>
 
           <div
             class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--left m-menu__submenu--tabs"
@@ -110,9 +110,9 @@
                 m-menu-link-redirect="1"
                 aria-haspopup="true"
               >
-                <router-link to="/dashboard/DataTable" class="m-menu__link "
+                <a class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-settings-1"></i
-                  ><span class="m-menu__link-text">{{ $t('DataTable')}}</span></router-link
+                  ><span class="m-menu__link-text">{{ $t('DataTable')}}</span></a
                 >
               </li>
             </ul>
@@ -123,14 +123,14 @@
           m-menu-submenu-toggle="tab"
           aria-haspopup="true"
         >
-          <a
-            href="javascript:;"
+          <router-link
+            to="/dashboard/calender"
             class="m-menu__link m-menu__toggle"
             title="Non functional dummy link"
             ><span class="m-menu__link-text">{{ $t('CalenderPeker') }}</span
             ><i class="m-menu__hor-arrow la la-angle-down"></i
             ><i class="m-menu__ver-arrow la la-angle-right"></i
-          ></a>
+          ></router-link>
           <div
             class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--left m-menu__submenu--tabs"
           >
@@ -141,11 +141,11 @@
                 m-menu-link-redirect="1"
                 aria-haspopup="true"
               >
-                <router-link to="/dashboard/Dashboard1" class="m-menu__link "
+                <a  class="m-menu__link "
                   ><i class="m-menu__link-icon flaticon-support"></i
                   ><span class="m-menu__link-text"
                     >{{ $t('CalenderPeker') }}</span
-                  ></router-link
+                  ></a
                 >
               </li>
 
@@ -157,14 +157,14 @@
           m-menu-submenu-toggle="tab"
           aria-haspopup="true"
         >
-          <a
-            href="javascript:;"
+          <router-link
+            to="/dashboard/picker"
             class="m-menu__link m-menu__toggle"
             title="Non functional dummy link"
             ><span class="m-menu__link-text">{{ $t('Pickers') }}</span
             ><i class="m-menu__hor-arrow la la-angle-down"></i
             ><i class="m-menu__ver-arrow la la-angle-right"></i
-          ></a>
+          ></router-link>
           <div
             class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--left m-menu__submenu--tabs"
           >
