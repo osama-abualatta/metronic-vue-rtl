@@ -28,9 +28,9 @@
 
 <script>
 import axios from "axios";
-import { EventBus } from '../../app';
+import { EventBus } from "../../app";
 export default {
-   // props: ["rows"],
+    // props: ["rows"],
     data() {
         return {
             columns: [
@@ -70,36 +70,45 @@ export default {
         };
     },
     mounted() {
-        axios
-            .get("https://reqres.in/api/users?page=2")
-            .then(response => {
-                this.rows = response.data.data;
-                for (let i = 0; i <= response.data.data.length; i++) {
-                    let res = response.data.data[i];
-                    res.avatar = "<img src =" + res.avatar + ">";
-                }
+        this.fillTable();
 
-                // for( i=0;i<rows.length;i++){
-                //    console.log(response.data.data[i].avatar)
-                // }
-                // console.log(response);
-                //console.log(response.data.data[]);
-            })
-            .catch(error => console.log(error));
+        this.$root.$on("confirmDeleteUser", id => {
+            this.DoDeleteUser(id);
+        });
     },
     methods: {
+        fillTable() {
+            let $this = this;
+            axios
+                .get("https://reqres.in/api/users?page=2")
+                .then(response => {
+                    $this.rows = response.data.data;
+                    for (let i = 0; i < response.data.data.length; i++) {
+                        let res = response.data.data[i];
+                        res.avatar = "<img src =" + res.avatar + ">";
+                    }
+
+                    // for( i=0;i<rows.length;i++){
+                    //    console.log(response.data.data[i].avatar)
+                    // }
+                    // console.log(response);
+                    //console.log(response.data.data[]);
+                })
+                .catch(error => console.log(error));
+        },
         onRowClick(params) {
             console.log(params);
             switch (params.event.toElement.id) {
                 case "btnDelete":
                     console.log("btnDelete");
-                    this.$emit("deleteUser", params.row); //all row data passed with the event
+                    this.$root.$emit("deleteUser", params.row); //all row data passed with the event
                     break;
 
                 case "btnDetails":
-                    this.$router.push('userdetails')
-                   // this.$emit("details", params.row);
-                    //console.log("btndetails");
+                    console.log("btndetails");
+                    // this.$router.push('userdetails')
+                    this.$root.$emit("details", params.row);//$emit is for fireing the event
+                    //تبليغ عن حدث مع تمرير ما تشاء من بيانات مع الحدث
                     break;
             }
             // params.row - row object
@@ -108,19 +117,24 @@ export default {
             // indicates selected or not
             // params.event - click event
         },
-        DoDeleteUser(id){
-//console.log(params);
-console.log(this.row.id);//call the api do delete user from server then refresh the table
- //this.rows.splice(this.rows.indexOf(params),1)
- if(id>-1){
- //this.params.splice(this.params,1);
- }
-        },
-        //   deleteRow: function(resource) {
-        //     //console.log(event)\
-        //     this.resources.splice(this.resources.indexOf(resource), 1);
-        // }
+        DoDeleteUser(data) {//data = selectedRow
+            //console.log(params);
+            console.log(data.id); //call the api do delete user from server then refresh the table
+            //this.rows.splice(this.rows.indexOf(params),1)
+            axios
+                .delete("https://reqres.in/api/users/" + data.id)
+                .then(response => {
+                    // this.fillTable();
+                    var index = this.rows.findIndex(function(i) {
+                        return i.id === data.id;
+                    });
+                   // var index = this.rows.indexOf(data);
+                    this.rows.splice(index, 1);
+                     this.$root.$emit("serverDeleteUser");
 
+                })
+                .catch(error => console.log(error));
+        }
     }
 };
 </script>

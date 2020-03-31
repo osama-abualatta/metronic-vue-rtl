@@ -11,6 +11,7 @@
     "watch-poll": "npm run watch -- --watch-poll"
   },
   "dependencies": {
+    "bootstrap-vue-treeview": "^1.0.8",
     "core-js": "^3.3.2",
     "jquery": "^3.4.1",
     "node-sass": "^4.13.0",

@@ -42,7 +42,7 @@ import 'vue-ctk-date-time-picker/dist/vue-ctk-date-time-picker.css';
     }
 </script>
 
-<style >
+<style  >
 .m-content{
     height: 550px;
 }

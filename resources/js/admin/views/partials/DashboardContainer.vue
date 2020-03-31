@@ -25,15 +25,17 @@
                     <!-- END: Subheader -->
                     <!-- begin content-->
                     <div class="m-content">
-
                         <delete-user
                             @onUserDelete="handleUserDelete"
                             v-if="userdelete"
                         ></delete-user>
-                        <user-details v-if="showUser"></user-details>
+                        <user-details
+                            v-show="show"
+                            ref="details_comp"
+                        ></user-details>
 
+ <!-- ref="details_comp"  اشرنا علي الكمبوننت باسم او بالعربي اعطيناها اسم مميز--->
                         <router-view />
-
                     </div>
 
                     <!-- end content-->
@@ -71,30 +73,47 @@ export default {
     data() {
         return {
             userdelete: false,
-            showUser: false,
+            show: false,
             selectedRow: {}
         };
     },
-    methods: {
-        handleUserDelete() {
-           // console.log("user confirmed to delete");
-           // console.log(this.selectedRow);
-            this.$refs.users_table.DoDeleteUser(this.selectedRow.id);
-            this.selectedRow = {}; //do this after delete to reset the selected user
-        },
-        deleteUser(row) {
-            this.userdelete = !this.userdelete;
-              this.selectedRow = row;
-           // console.log('deleteUser,row');
-          //  console.log(row);
+    mounted() {
+        let self = this;
+        this.$root.$on("deleteUser", row => {
+            self.userdelete = !self.userdelete;
+            self.selectedRow = row;
+            console.log("deleteUser,row");
+            //  console.log(row);
             // alert(row);
             // console.log('delete');
-        },
-        details(row) {
-            this.selectedRow = row;
-            //console.log('deleteUser,row');
-           // console.log(row);
-            //this.showUser = !this.showUser;
+        });
+
+        this.$root.$on("serverDeleteUser", function() {
+            self.userdelete = false;
+        });
+
+        this.$root.$on("details", row => {//listen to the event "details" $n is for listening to the event
+            console.log("details,row");
+            //استقبلنا بيانات الحدث
+            console.log(row);
+            self.show = true;
+            //self.selectedRow = row;
+            //بما انو الكومبوننت عندي يعني بقدر اضيفها ع ال
+            //refs
+            this.$refs.details_comp.getUserDataFromAPI(row.id);
+            // this.$refs.nameOfTheRef
+            //nameOfTheRef = اسم ال ref
+            //بتقدر تصل لكل حاجه داخلها بما في ذلك
+            //methods or data
+            //self.showUser = !thselfis.showUser;
+        });
+    },
+    methods: {
+        handleUserDelete() {
+            console.log("user confirmed to delete");
+            console.log(this.selectedRow);
+            this.$root.$emit("confirmDeleteUser", this.selectedRow);
+            this.selectedRow = {}; //do this after delete to reset the selected user
         }
     }
 };

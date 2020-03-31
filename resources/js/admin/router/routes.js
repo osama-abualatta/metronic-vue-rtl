@@ -3,6 +3,7 @@ import Dashboard2 from "../views/partials/Dashboard2";
 import Customer from "../views/partials/Customer";
 import UserDetails from "../views/partials/UserDetails";
 import Picker from "../views/partials/Picker";
+import ClassificationManagement from "../views/partials/ClassificationManagement";
 import CalenderPicker from "../views/partials/CalenderPicker"
 import Table from "../views/partials/Table";
 import SignUp from "../views/partials/header/SignUp";
@@ -34,6 +35,9 @@ export default [
              {
                  path:"calender",component :CalenderPicker
              },
+             {
+                path:"classification",component :ClassificationManagement
+            },
                 {
                     path :"customer",component:Customer
                 },

@@ -60,13 +60,13 @@
                     </div>
                     <img
                         class="swal2-image"
-                        :src='users.avatar'
+                        :src="users.avatar"
                         alt="Custom image"
                         width="400"
                         height="200"
                         style="display: flex;"
                     />
-                <!-- <div>
+                    <!-- <div>
                     {{users.avatar}}
                 </div> -->
                     <h4
@@ -74,7 +74,7 @@
                         id="swal2-title"
                         style="display: flex;"
                     >
-                        ID : {{users.id}}
+                        ID : {{ users.id }}
                     </h4>
                     <!-- <label > ID : </label>
                     <input type="text" v-bind:row="row"> -->
@@ -83,21 +83,21 @@
                         id="swal2-title"
                         style="display: flex;"
                     >
-                        Email: {{users.email}}
+                        Email: {{ users.email }}
                     </h4>
                     <h4
                         class="swal2-title"
                         id="swal2-title"
                         style="display: flex;"
                     >
-                        FirstName: {{users.first_name}}
+                        FirstName: {{ users.first_name }}
                     </h4>
                     <h4
                         class="swal2-title"
                         id="swal2-title"
                         style="display: flex;"
                     >
-                        LastName: {{users.last_name}}
+                        LastName: {{ users.last_name }}
                     </h4>
                     <button
                         type="button"
@@ -164,37 +164,40 @@
 <script>
 import axios from "axios";
 export default {
-  // props: ["users"],
+    // props: ["users"],
     data() {
-
         return {
-             image: '',
-            show: true,
-             users:[],
+            image: "",
+            show: false,
+            users: []
             // image1:{users}
-        }
+        };
     },
-    methods:{
-
-    },
+    methods: {},
     mounted() {
-        let self =this;
-        this.image = ''
-        axios
-            .get("https://reqres.in/api/users/2")
-            .then(response => {
-
-                self.users = response.data.data;
-                console.log('Data',response.data.data);
-               // this.image = 'data:image/jpg;base64,'.concat(this.image.concat(users))
-                    users.avatar ="<img src =" +users.avatar + " >";
-                   // image=users.avatar;
-            })
-            .catch(error => console.log(error));
+      //  console.log("test mounted for user details component");
+        //mounted works when this component is rendered (compiled) [shown or not]
+        //حتي لو كانت الكومبونن مخفيه رح يجي هون
+        //لكن احنا بدنا نجيب التفاصيل لما احنا بدنا
     },
     methods: {
         hideUser() {
             this.show = !this.show;
+        },
+        getUserDataFromAPI(id) {
+            let self = this;
+            this.image = "";
+            this.show = true;
+            axios
+                .get("https://reqres.in/api/users/" + id)
+                .then(response => {
+                    self.users = response.data.data;
+                    console.log("Data", response.data.data);
+                    // this.image = 'data:image/jpg;base64,'.concat(this.image.concat(users))
+                    users.avatar = "<img src =" + users.avatar + " >";
+                    // image=users.avatar;
+                })
+                .catch(error => console.log(error));
         }
     }
 };
