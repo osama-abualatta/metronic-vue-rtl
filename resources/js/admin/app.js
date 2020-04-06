@@ -8,9 +8,9 @@ import BootstrapVueTreeview from 'bootstrap-vue-treeview'
 
 //import Vue from 'vue';
 import VCalendar from 'v-calendar';
+import VueAgile from 'vue-agile'
 
-
-
+Vue.use(VueAgile);
 Vue.use(VueGoodTablePlugin);
 Vue.use(VCalendar);
 Vue.use(BootstrapVueTreeview)

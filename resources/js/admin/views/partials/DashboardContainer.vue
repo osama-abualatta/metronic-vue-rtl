@@ -24,7 +24,7 @@
 
                     <!-- END: Subheader -->
                     <!-- begin content-->
-                    <div class="m-content">
+                    <div class="m-content" id="rv">
                         <delete-user
                             @onUserDelete="handleUserDelete"
                             v-if="userdelete"
@@ -34,8 +34,10 @@
                             ref="details_comp"
                         ></user-details>
 
- <!-- ref="details_comp"  اشرنا علي الكمبوننت باسم او بالعربي اعطيناها اسم مميز--->
-                        <router-view />
+                        <!-- ref="details_comp"  اشرنا علي الكمبوننت باسم او بالعربي اعطيناها اسم مميز--->
+                        <div style="border:1px solid;">
+                            <router-view />
+                        </div>
                     </div>
 
                     <!-- end content-->
@@ -92,7 +94,8 @@ export default {
             self.userdelete = false;
         });
 
-        this.$root.$on("details", row => {//listen to the event "details" $n is for listening to the event
+        this.$root.$on("details", row => {
+            //listen to the event "details" $n is for listening to the event
             console.log("details,row");
             //استقبلنا بيانات الحدث
             console.log(row);
