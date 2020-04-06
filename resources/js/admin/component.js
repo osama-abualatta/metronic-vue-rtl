@@ -17,6 +17,7 @@ import Lang from'./views/partials/Lang'
 import LogIn from'./views/partials/header/LogIn'
 import SignUp from'./views/partials/header/SignUp'
 import UserDetails from './views/partials/UserDetails'
+import Test from './views/Test'
 ////////////////////////////
 import DashboardContainer from'./views/partials/DashboardContainer'
 
@@ -53,4 +54,5 @@ Vue.component('calendar', Calendar)
 Vue.component('date-picker', DatePicker)
 Vue.component('verte', Verte);
 Vue.component('VueCtkDateTimePicker', VueCtkDateTimePicker);
+Vue.component('test', Test);
 

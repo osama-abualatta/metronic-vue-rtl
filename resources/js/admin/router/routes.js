@@ -15,7 +15,9 @@ import OptionsFeatures from "../views/partials/Item/OptionsFeatures";
 import Preview from "../views/partials/Item/Preview";
 import DashboardContainer from "../views/partials/DashboardContainer";
 import BasicData from "../views/partials/RegisterAsDealer/BasicData";
+import AccountData from "../views/partials/RegisterAsDealer/AccountData";
 import Item from "../views/partials/Item/ItemContainer";
+import RegisterDealer from "../views/partials/RegisterAsDealer/RegisterDealer";
 
 // import Layout from "../views/Layout";
 
@@ -43,8 +45,22 @@ export default [
                 component: Table
             },
             {
-                path: "basicData",
-                component: BasicData
+                path: "RegisterDealer",
+                component: RegisterDealer,
+                children: [
+                    {
+                        path: "",
+                        component: BasicData
+                    },
+                    {
+                        path: "basicData",
+                        component: BasicData
+                    },
+                    {
+                        path: "accountData",
+                        component: AccountData
+                    }
+                ]
             },
             {
                 path: "slider",
@@ -69,21 +85,24 @@ export default [
             {
                 path: "item",
                 component: Item,
-                children:[
+                children: [
                     {
-                    path:"preview",component:Preview
-                },
-                {
-                    path:"evaluation",component:Evaluation
-                },
-                {
-                    path:"optionFeatures",component:OptionsFeatures
-                },
-                {
-                    path:"commit",component:Commit
-                }
-            ]
-
+                        path: "preview",
+                        component: Preview
+                    },
+                    {
+                        path: "evaluation",
+                        component: Evaluation
+                    },
+                    {
+                        path: "optionFeatures",
+                        component: OptionsFeatures
+                    },
+                    {
+                        path: "commit",
+                        component: Commit
+                    }
+                ]
             }
             // {
             //     path: "Dashboard1",

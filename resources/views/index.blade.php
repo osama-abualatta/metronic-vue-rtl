@@ -28,6 +28,7 @@
 		<!--RTL version:<link href="assets/vendors/base/vendors.bundle.rtl.css" rel="stylesheet" type="text/css" />-->
    <link href="{{asset('/assets/demo/demo10/base/style.bundle.css')}}" rel="stylesheet" type="text/css" id="style" />
    <link href="{{asset('/assets/demo/demo10/base/style.bundle.rtl.css')}}" rel="stylesheet" type="text/css"  id="style-rtl"/>
+   <link href="{{asset('/css/app.css')}}" rel="stylesheet" type="text/css"  id="style-rtl"/>
 
 		<!--end::Global Theme Styles -->
 

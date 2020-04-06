@@ -372,7 +372,7 @@
                     aria-haspopup="true"
                 >
                     <router-link
-                        to="/dashboard/basicData"
+                        to="/dashboard/RegisterDealer"
                         class="m-menu__link m-menu__toggle"
                         title="Non functional dummy link"
                         ><span class="m-menu__link-text">{{ $t("Register AS Dealer") }}</span

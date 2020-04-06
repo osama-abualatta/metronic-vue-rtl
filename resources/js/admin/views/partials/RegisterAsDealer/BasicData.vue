@@ -1,21 +1,5 @@
 <template>
-    <div class="container">
-        <h1>Register As Dealer</h1>
-        <p>More few steps to create new acount</p>
-        <div class="row">
-            <div class="col">
-                <button>1</button>
-                <div>
-                    <h3>Basic Data</h3>
-                </div>
-            </div>
-            <div class="col">
-                <button>2</button>
-                <div>
-                    <h3>Acount Data</h3>
-                </div>
-            </div>
-        </div>
+    <div>
         <div class="row">
             <div class="col">
                 <label> Shop Name</label>
@@ -25,7 +9,14 @@
                 <div class="col">
                     <label> Country</label>
                     <div>
-                        <input type="text" />
+                        <select v-model="countryId" @change="GetCities">
+                            <option
+                                v-for="country in countries"
+                                :key="country.id"
+                                :value="country.id"
+                                >{{ country.title }}</option
+                            >
+                        </select>
                     </div>
                 </div>
             </div>
@@ -34,7 +25,14 @@
             <div class="col">
                 <label> City</label>
                 <div>
-                    <input type="text" placeholder="choose your tawn" />
+                    <select v-model="cityId">
+                        <option
+                            v-for="city in countryCities"
+                            :key="city.id"
+                            :value="city.id"
+                            >{{ city.name }}</option
+                        >
+                    </select>
                 </div>
                 <div class="col">
                     <label>Commercial Registration No</label>
@@ -78,7 +76,48 @@
 </template>
 
 <script>
-export default {};
+import axios from "axios";
+export default {
+    data() {
+        return {
+            countryId: 0,
+            cityId: 0,
+            countries: [],
+            cities: [],
+            countryCities: []
+        };
+    },
+    mounted() {
+        axios
+            .get("/country.json")
+            .then(response => {
+                console.log(response);
+                this.$set(this, "countries", response.data.resources);
+            })
+            .catch(function(error) {
+                console.log(error);
+            });
+
+        axios
+            .get("/city.json")
+            .then(response => {
+                console.log(response);
+                this.$set(this, "cities", response.data.data);
+            })
+            .catch(function(error) {
+                console.log(error);
+            });
+    },
+    methods: {
+        GetCities() {
+            this.$set(
+                this,
+                "countryCities",
+                this.cities.filter(x => x.country_id == this.countryId)
+            );
+        }
+    }
+};
 </script>
 
 <style></style>
