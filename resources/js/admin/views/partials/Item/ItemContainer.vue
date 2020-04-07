@@ -27,4 +27,9 @@
 
     text-decoration: underline;
 }
+
+ul.nav{
+        margin-bottom: 25px;
+    font-size: 25px;
+}
 </style>

@@ -79,7 +79,7 @@
                         v-for="activity in selectActivity "
                         :key="activity.id"
                         :value="activity.id"
-                        >{{activity[0].children[0].name}}</option >
+                        >{{activity[this.no].children}}</option >
                     </select>
                 </div>
 
@@ -109,7 +109,8 @@ export default {
             countryCities: [],
             activityType:0,
             activities:[],
-            selectActivity:[]
+            selectActivity:[],
+            no:[0,1]
 
         };
     },
