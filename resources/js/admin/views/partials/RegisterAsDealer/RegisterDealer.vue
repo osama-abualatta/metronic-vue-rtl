@@ -39,4 +39,7 @@ export default {};
     margin-top: 13px;
     cursor: pointer;
 }
+.router-link-exact-active .btn1{
+    background-color: #f87609a1 ;
+}
 </style>

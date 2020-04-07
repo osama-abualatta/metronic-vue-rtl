@@ -15,11 +15,11 @@
         <div class="col-md-4">
      <h1>5</h1>
      <div><span><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i></span></div>
-        <div > 5 stars <span class="progress-bar w-75" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></span><span>100%</span></div>
-        <div> 4 stars<span>progress</span><span>0</span></div>
-        <div> 3 stars<span>progress</span><span>0</span></div>
-        <div> 2 stars<span>progress</span><span>0</span></div>
-        <div> 1 stars<span>progress</span><span>0</span></div>
+        <div> 5 stars<span><progress id="file" max="100" value="100"> 100% </progress></span><span>100%</span></div>
+        <div> 4 stars<span><progress id="file" max="100" value="100"> 100% </progress></span><span>0</span></div>
+        <div> 3 stars<span><progress id="file" max="100" value="100"> 100% </progress></span><span>0</span></div>
+        <div> 2 stars<span><progress id="file" max="100" value="100"> 100% </progress></span><span>0</span></div>
+        <div> 1 stars<span><progress id="file" max="100" value="100"> 100% </progress></span><span>0</span></div>
         </div>
       </div>
   </div>

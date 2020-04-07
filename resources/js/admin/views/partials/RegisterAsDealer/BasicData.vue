@@ -74,13 +74,14 @@
             <div class="col form-group">
                 <label for="">service type</label>
                 <div>
-                    <select class="form-control">
+                <select class="form-control">
                         <option
                         v-for="activity in selectActivity "
                         :key="activity.id"
                         :value="activity.id"
-                        >{{activity[this.no].children}}</option >
+                        >{{activity.name}}</option >
                     </select>
+                    <!--ارسم الشجره هنا بدل هادي ال select لانه الجسيون اللي جاييك شكل تبع بلقن الشجره!!-->
                 </div>
 
             </div>
@@ -110,7 +111,7 @@ export default {
             activityType:0,
             activities:[],
             selectActivity:[],
-            no:[0,1]
+
 
         };
     },
@@ -137,7 +138,6 @@ export default {
                     axios
             .get("/activity-type-category.json")
             .then(response => {
-                console.log(response.data.data.children[0].children[0].name);
                 this.$set(this, "activities", response.data.data.children);
             })
             .catch(function(error) {
@@ -153,11 +153,8 @@ export default {
             );
         },
         radioSelect(){
-               this.$set(
-                this,
-                "selectActivity",
-                this. activities.filter(x => x.id == this.activityType)
-            );
+        console.log(this.activityType);
+               this.$set(this,"selectActivity",this.activities[this.activityType].children);
         },
         continueRegister(){
             this.$router.push({ path: '/dashboard/RegisterDealer/accountData' })
