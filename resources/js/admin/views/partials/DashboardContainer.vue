@@ -35,7 +35,7 @@
                         ></user-details>
 
                         <!-- ref="details_comp"  اشرنا علي الكمبوننت باسم او بالعربي اعطيناها اسم مميز--->
-                        <div style="border:1px solid;">
+                        <div>
                             <router-view />
                         </div>
                     </div>
@@ -121,3 +121,9 @@ export default {
     }
 };
 </script>
+<style scoped>
+div#rv{
+    height: 650px;
+}
+
+</style>
