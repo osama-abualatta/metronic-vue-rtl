@@ -11,7 +11,7 @@
                 </div>
             </div>
             <div class="col">
-              <router-link to="/dashboard/RegisterDealer/accountData" active-class="active">  <button class="btn1 ">2</button></router-link>
+              <router-link to="/dashboard/RegisterDealer/accountData" active-class="active">  <button class="btn1  ">2</button></router-link>
                 <div>
                     <h3>Acount Data</h3>
                 </div>
