@@ -2,8 +2,8 @@
 	<div>
 		<div class="appp-container">
 			 <div>
-				<button @click="resetData">Clear Data</button>
-				<button @click="addData" :disabled="updatingData">Add Data</button>
+				<button @click="resetData" class="btn btn-danger">Clear Data</button>
+				<button @click="addData" :disabled="updatingData" class="btn btn-success">Add Data</button>
 			</div>
 			<span class="user-logged">Logged as</span>
 			<select v-model="currentUserId">

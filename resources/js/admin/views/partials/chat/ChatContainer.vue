@@ -46,7 +46,7 @@
 		</div>
 
 		<chat-window
-			height="calc(100vh - 80px)"
+			height="500px"
 			:theme="theme"
 			:styles="styles"
 			:currentUserId="currentUserId"
