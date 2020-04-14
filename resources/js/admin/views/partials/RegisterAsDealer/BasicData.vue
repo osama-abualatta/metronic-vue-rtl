@@ -8,12 +8,12 @@
             <div class="col form-group">
                 <label for="ShopInput"> Shop Name</label>
 
-                    <input type="text" class="form-control" id="ShopInput" />
+                    <input type="text" class="form-control" id="ShopInput"  />
             </div>
                 <div class="col form-group">
                     <label> Country</label>
 
-                        <select v-model="countryId" @change="GetCities" class="form-control">
+                        <select v-model="countryId" @change="GetCities" class="form-control" >
                             <option
                                 v-for="country in countries"
                                 :key="country.id"
@@ -29,7 +29,7 @@
             <div class="col form-group">
                 <label> City</label>
                 <div>
-                    <select v-model="cityId" class="form-control">
+                    <select v-model="cityId" class="form-control" >
                         <option
                             v-for="city in countryCities"
                             :key="city.id"
@@ -74,7 +74,7 @@
             <div class="col form-group">
                 <label for="">service type</label>
                 <div>
-                <select class="form-control">
+                <select class="form-control" >
                         <option
                         v-for="activity in selectActivity "
                         :key="activity.id"
@@ -88,7 +88,7 @@
         </div>
         <div class="row">
             <div class="col text-center">
-                <button class="btn btn-primary" @click="continueRegister">Continue</button>
+                <button class="btn btn-primary" @click="continueRegister" >Continue</button>
             </div>
         </div>
         <div>

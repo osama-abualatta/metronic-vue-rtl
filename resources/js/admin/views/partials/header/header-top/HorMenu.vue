@@ -382,6 +382,22 @@
 
 
                 </li>
+                                 <li
+                    class="m-menu__item  m-menu__item--active  m-menu__item--active-tab  m-menu__item--submenu m-menu__item--tabs"
+                    m-menu-submenu-toggle="tab"
+                    aria-haspopup="true"
+                >
+                    <router-link
+                        to="/dashboard/chat"
+                        class="m-menu__link m-menu__toggle"
+                        title="Non functional dummy link"
+                        ><span class="m-menu__link-text">{{ $t("chat") }}</span
+                        ><i class="m-menu__hor-arrow la la-angle-down"></i
+                        ><i class="m-menu__ver-arrow la la-angle-right"></i
+                    ></router-link>
+
+
+                </li>
             </ul>
         </div>
     </div>

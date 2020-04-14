@@ -17,6 +17,8 @@ import DashboardContainer from "../views/partials/DashboardContainer";
 import BasicData from "../views/partials/RegisterAsDealer/BasicData";
 import AccountData from "../views/partials/RegisterAsDealer/AccountData";
 import Item from "../views/partials/Item/ItemContainer";
+import chat from "../views/partials/chat/chat";
+
 import RegisterDealer from "../views/partials/RegisterAsDealer/RegisterDealer";
 
 // import Layout from "../views/Layout";
@@ -43,6 +45,11 @@ export default [
             {
                 path: "table",
                 component: Table
+            },
+
+            {
+                path: "chat",
+                component: chat
             },
             {
                 path: "RegisterDealer",
@@ -103,7 +110,7 @@ export default [
                         component: Commit
                     }
                 ]
-            }
+             }
             // {
             //     path: "Dashboard1",
             //     component: Dashboard

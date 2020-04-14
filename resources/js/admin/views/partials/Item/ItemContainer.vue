@@ -32,4 +32,8 @@ ul.nav{
         margin-bottom: 25px;
     font-size: 25px;
 }
+.router-link-exact-active {
+    color:black;
+    text-decoration-line: underline;
+}
 </style>

@@ -29,9 +29,9 @@ export default {};
 <style>
 .btn1{
     border-radius: 50%;
-    border: 1px solid black;
+     border: 1px solid black;
     background-color: white;
-        padding: 8px;
+    padding: 8px;
     font-size: 27px;
     width: 50px;
     height: 50px;
@@ -40,6 +40,8 @@ export default {};
     cursor: pointer;
 }
 .router-link-exact-active .btn1{
-    background-color: #f87609a1 ;
+    /* background-color: #f87609a1 ; */
+    border:2px solid #f87609a1 !important;
+    background-color: white !important;
 }
 </style>

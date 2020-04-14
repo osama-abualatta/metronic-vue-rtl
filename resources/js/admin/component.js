@@ -29,6 +29,8 @@ import VueCtkDateTimePicker from 'vue-ctk-date-time-picker';
 import Verte from 'verte';
 import 'verte/dist/verte.css';
 import 'vue-ctk-date-time-picker/dist/vue-ctk-date-time-picker.css';
+import StarRating from 'vue-star-rating';
+import ChatContainer from "./views/partials/chat/ChatContainer";
 
 
 Vue.component('dashboard-container',DashboardContainer)
@@ -47,6 +49,7 @@ Vue.component('horMenu',HorMenu)
 Vue.component('lang',Lang)
 Vue.component('login',LogIn)
 Vue.component('SignUp',SignUp)
+Vue.component('chat-container',ChatContainer)
 
 Vue.component('delete-user',DeleteUser)
 Vue.component('user-details',UserDetails)
@@ -55,4 +58,5 @@ Vue.component('date-picker', DatePicker)
 Vue.component('verte', Verte);
 Vue.component('VueCtkDateTimePicker', VueCtkDateTimePicker);
 Vue.component('test', Test);
+Vue.component('star-rating', StarRating);
 

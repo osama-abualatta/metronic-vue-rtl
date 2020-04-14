@@ -8,7 +8,10 @@
                 :key="slide.id"
             >
                 <img :src="slide.url" alt="" style="width:100%;height:100%;" />
-                <h3>{{ slide.title }}</h3>
+                <h3 dir="rtl">{{ slide.title }}</h3>
+                <star-rating :star-size="35" :increment="0.5" :rating="5"></star-rating><!--https://vuejsexamples.com/a-simple-and-highly-customisable-star-rating-component-for-vue/-->
+                <test></test>
+                <progress id="file" max="100" value="90">  </progress>
                 <test></test>
             </div>
         </agile>
@@ -29,31 +32,31 @@ export default {
                 },
                 {
                     id: 2,
-                    title: "slide1",
+                    title: "slide2",
                     url:
                         "https://images.unsplash.com/photo-1496412705862-e0088f16f791?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&w=1600&fit=max&ixid=eyJhcHBfaWQiOjE0NTg5fQ"
                 },
                 {
                     id: 3,
-                    title: "slide1",
+                    title: "slide3",
                     url:
                         "https://images.unsplash.com/photo-1496412705862-e0088f16f791?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&w=1600&fit=max&ixid=eyJhcHBfaWQiOjE0NTg5fQ"
                 },
                 {
                     id: 4,
-                    title: "slide1",
+                    title: "slide4",
                     url:
                         "https://images.unsplash.com/photo-1496412705862-e0088f16f791?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&w=1600&fit=max&ixid=eyJhcHBfaWQiOjE0NTg5fQ"
                 },
                 {
                     id: 5,
-                    title: "slide1",
+                    title: "slide5",
                     url:
                         "https://images.unsplash.com/photo-1496412705862-e0088f16f791?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&w=1600&fit=max&ixid=eyJhcHBfaWQiOjE0NTg5fQ"
                 },
                 {
                     id: 6,
-                    title: "slide1",
+                    title: "slide6",
                     url:
                         "https://images.unsplash.com/photo-1496412705862-e0088f16f791?ixlib=rb-1.2.1&q=85&fm=jpg&crop=entropy&cs=srgb&w=1600&fit=max&ixid=eyJhcHBfaWQiOjE0NTg5fQ"
                 }

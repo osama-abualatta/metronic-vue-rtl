@@ -1,6 +1,6 @@
 <template>
     <div>
-test
+Sold:10
     </div>
 </template>
 

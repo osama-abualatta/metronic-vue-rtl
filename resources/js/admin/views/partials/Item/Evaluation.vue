@@ -2,7 +2,10 @@
   <div>
       <div class="row">
         <div class="col-md-6 evaluation-box">
-            <h3>Sending the Evaluation (5) <span><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i></span></h3>
+            <!-- <h3>Sending the Evaluation (5) <span><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i><i class="la la-star-o"></i></span></h3> -->
+
+                       <h3>Sending the Evaluation <span><star-rating :star-size="35" :increment="0.5" :inline="true" :rating="5"></star-rating></span></h3>
+                        <!--https://vuejsexamples.com/a-simple-and-highly-customisable-star-rating-component-for-vue/-->
             <div>
                 <textarea name="" id="" cols="90" rows="5"></textarea>
                 <button class="btn btn-2">Send Evaluate</button>
@@ -31,7 +34,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .evaluation-box{
     margin-left: 50px;
         border-radius: 25px;
@@ -52,5 +55,13 @@ i{
 }
 .la-cloud-download{
     color: white;
+}
+progress#file{
+   margin: 4px 25px -2px 27px;
+    width: 250px;
+    padding: 7px;
+    /* color: #ccc; */
+    background: #7e7c7c26;
+
 }
 </style>
